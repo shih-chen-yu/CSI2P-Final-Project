@@ -96,6 +96,9 @@ private:
     // 目前鎖定要去的建築物（如果有）
     Building *target_building = nullptr;
 
+    // 追建築物分兩階段：0 = 先走 X, 1 = 再走 Y
+    int chase_phase = 0;
+
     // 從亂走狀態中挑一個新的方向與速度
     void choose_random_direction();
 };

@@ -89,7 +89,7 @@ SoundCenter::erase_sample(const std::string &path) {
  * @details For the list of supported play modes, refer to [manual](https://liballeg.org/a5docs/trunk/audio.html#allegro_playmode).
  */
 ALLEGRO_SAMPLE_INSTANCE*
-SoundCenter::play(const string &path, ALLEGRO_PLAYMODE mode) {
+SoundCenter::play(const string &path, ALLEGRO_PLAYMODE mode, float volume) {
 	auto it = samples.find(path);
 	if(it == samples.end()) {
 		ALLEGRO_SAMPLE *sample = al_load_sample(path.c_str());
@@ -102,6 +102,7 @@ SoundCenter::play(const string &path, ALLEGRO_PLAYMODE mode) {
 
 	al_set_sample_instance_playmode(instance, mode);
 	al_attach_sample_instance_to_mixer(instance, al_get_default_mixer());
+	al_set_sample_instance_gain(instance, volume);
 	al_play_sample_instance(instance);
 	return instance;
 }
@@ -126,4 +127,16 @@ SoundCenter::toggle_playing(ALLEGRO_SAMPLE_INSTANCE *inst) {
 		// As the sample stops, allegro will automatically reset the play position to 0. We need to set it back to be able to resume.
 		al_set_sample_instance_position(inst, pos);
 	} else al_play_sample_instance(inst);
+}
+
+/**
+ * @brief 設定特定音效實體的音量
+ * @param inst 音效實體指標
+ * @param val 音量值 (0.0 ~ 1.0)
+ */
+void
+SoundCenter::set_volume(ALLEGRO_SAMPLE_INSTANCE *inst, float val) {
+    if (inst != nullptr) {
+        al_set_sample_instance_gain(inst, val);
+    }
 }

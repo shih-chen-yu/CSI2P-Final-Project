@@ -23,9 +23,11 @@ public:
 	bool init();
 	void update();
 	bool erase_sample(const std::string &path);
-	ALLEGRO_SAMPLE_INSTANCE *play(const std::string &path, ALLEGRO_PLAYMODE mode);
+	ALLEGRO_SAMPLE_INSTANCE *play(const std::string &path, ALLEGRO_PLAYMODE mode, float volume = 1.0f);
 	bool is_playing(const ALLEGRO_SAMPLE_INSTANCE *const inst);
 	void toggle_playing(ALLEGRO_SAMPLE_INSTANCE *inst);
+	// 調整指定實體的音量
+    void set_volume(ALLEGRO_SAMPLE_INSTANCE *inst, float val);
 private:
 	SoundCenter();
 	/**

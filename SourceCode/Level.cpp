@@ -67,6 +67,35 @@ Level::load_level(int lvl) {
 		road_path.emplace_back(w, h);
 	}
 	debug_log("<Level> load level %d.\n", lvl);
+	fclose(f); // 記得關閉檔案
+
+    debug_log("<Level> load level %d.\n", lvl);
+
+    // ==========================================
+    // 修改處：在這裡直接生成 5 隻怪物
+    // ==========================================
+    
+    // 確保先清空舊的怪物
+    DC->monsters.clear();
+
+    int spawned_count = 0;
+    int target_spawn_num = 5; // 目標生成 5 隻
+
+    // 遍歷我們從檔案讀到的怪物數量設定
+    for(size_t i = 0; i < num_of_monsters.size(); ++i) {
+        // 當這種怪物還有剩餘數量，且我們還沒生滿 5 隻時
+        while(num_of_monsters[i] > 0 && spawned_count < target_spawn_num) {
+            
+            // 建立怪物 (使用 Monster::create_monster)
+            // 注意：road_path 必須已經讀取完畢
+            DC->monsters.emplace_back(
+                Monster::create_monster(static_cast<MonsterType>(i), road_path)
+            );
+
+            num_of_monsters[i]--; // 扣除剩餘數量
+            spawned_count++;      // 增加已生成數量
+        }
+    }
 }
 
 /**
@@ -74,19 +103,7 @@ Level::load_level(int lvl) {
 */
 void
 Level::update() {
-	if(monster_spawn_counter) {
-		monster_spawn_counter--;
-		return;
-	}
-	DataCenter *DC = DataCenter::get_instance();
-
-	for(size_t i = 0; i < num_of_monsters.size(); ++i) {
-		if(num_of_monsters[i] == 0) continue;
-		DC->monsters.emplace_back(Monster::create_monster(static_cast<MonsterType>(i), DC->level->get_road_path()));
-		num_of_monsters[i]--;
-		break;
-	}
-	monster_spawn_counter = LevelSetting::monster_spawn_rate;
+	return;
 }
 
 void
