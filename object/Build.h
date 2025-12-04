@@ -26,12 +26,13 @@ class Build : public Object{
          */
         void change_state(int state);
         void set_center(float cx, float cy); // 新增：設定建築中心位置
-        
+
         virtual void draw_ui(UI* ui, float x, float y, float w, float h);
         virtual void update_ui(UI* ui);
     protected:
         virtual const char* sprite_basename() const { return "building"; }
         virtual void on_interact();
+        virtual void child_init();
         virtual void child_update();
 
         BuildState State = BuildState::NORMAL;

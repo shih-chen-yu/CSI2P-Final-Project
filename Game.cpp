@@ -21,6 +21,8 @@
 #include <allegro5/allegro_acodec.h>
 #include <vector>
 #include <cstring>
+#include <cstdlib>
+#include <ctime>
 
 // fixed settings
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
@@ -36,6 +38,7 @@ constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
 void
 Game::execute() {
 	DataCenter *DC = DataCenter::get_instance();
+	std::srand((unsigned)std::time(nullptr));
 	// main game loop
 	bool run = true;
 	while(run) {   

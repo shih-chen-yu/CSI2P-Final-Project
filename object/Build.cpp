@@ -40,6 +40,8 @@ void Build::init(){
         DC->window_width / 2 + al_get_bitmap_width(pic) * scale / 2,
         DC->window_height / 2 + al_get_bitmap_height(pic) * scale / 2
     });
+
+    child_init();
 }
 
 void Build::draw(){
@@ -105,6 +107,7 @@ void Build::update(){
             on_interact();
         }
     }
+
     child_update();
 }
 
@@ -146,6 +149,10 @@ void Build::draw_ui(UI* ui, float x, float y, float w, float h){
 
 }
 
-void Build::update_ui(UI* ui){
+void Build::child_init(){
     
+}
+
+void Build::update_ui(UI* ui){
+
 }
