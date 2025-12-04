@@ -267,8 +267,8 @@ Game::game_draw() {
 		// user interface
 		if(state != STATE::START) {
 			OC->draw();
-			DC->hero->draw();
 			DC->map->draw();
+			DC->hero->draw();
 			DC->starve_info->draw();
 			DC->coin_info->draw();
 		}

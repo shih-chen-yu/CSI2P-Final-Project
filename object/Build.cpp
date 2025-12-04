@@ -29,7 +29,7 @@ void Build::init(){
     ALLEGRO_BITMAP* pic = IC->get(main_picpath);
     
     DataCenter* DC = DataCenter::get_instance();
-    scale = 0.1;
+    scale = 75.0 / al_get_bitmap_width(pic);
     hint_scale = 0.2;
 
     // 用縮放後圖片大小，在螢幕正中央建立一個 Rectangle 當 hitbox
@@ -73,7 +73,6 @@ void Build::draw(){
     // ★ 如果目前在「可互動」狀態，畫提示圖
     if(State == BuildState::F_NOTIFY){
         ALLEGRO_BITMAP* hint = IC->get(hint_picpath);
-        ALLEGRO_BITMAP* pic = IC->get(main_picpath);
         float hw = al_get_bitmap_width(hint);
         float hh = al_get_bitmap_height(hint);
 
@@ -103,10 +102,10 @@ void Build::update(){
         // 只有在 F_NOTIFY 狀態下才會真正觸發「F 被按下」行為
         if(State == BuildState::F_NOTIFY){
             debug_log("Build F key pressed.\n");
-            if(!DC->ui->is_open()) DC->ui->open(this); // 若 UI 尚未開啟，將此 Build 傳入並開啟 UI 視窗
-            else DC->ui->close();
+            on_interact();
         }
     }
+    child_update();
 }
 
 void Build::change_state(int changer){
@@ -131,4 +130,22 @@ void Build::set_center(float cx, float cy){
         cx + half_w,
         cy + half_h
     });
+}
+
+void Build::on_interact(){
+    DataCenter* DC = DataCenter::get_instance();
+    if(!DC->ui->is_open()) DC->ui->open(this); // 若 UI 尚未開啟，將此 Build 傳入並開啟 UI 視窗
+    else DC->ui->close();
+}
+
+void Build::child_update(){
+
+}
+
+void Build::draw_ui(UI* ui, float x, float y, float w, float h){
+
+}
+
+void Build::update_ui(UI* ui){
+    
 }

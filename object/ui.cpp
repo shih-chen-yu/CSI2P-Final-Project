@@ -1,14 +1,15 @@
 #include "ui.h"
 #include "../data/DataCenter.h"
 #include "../object/Build.h"
+
 #include <allegro5/allegro_font.h>
 
 UI::UI(): open_flag(false), target_build(nullptr), x(0),y(0),w(0),h(0) {}
 
 void UI::init(){
     DataCenter* DC = DataCenter::get_instance();
-    w = DC->window_width * 0.5f;
-    h = DC->window_height * 0.5f;
+    w = DC->window_width * 0.75f;
+    h = DC->window_height * 0.75f;
     x = (DC->window_width - w) / 2.0f;
     y = (DC->window_height - h) / 2.0f;
 }
@@ -31,8 +32,12 @@ void UI::update(){
     // ESC 關閉 UI
     if(DC->key_state[ALLEGRO_KEY_ESCAPE]){
         close();
+        return;
     }
     // 可以在這裡處理 UI 的按鈕/按鍵邏輯
+    if(target_build){
+        target_build->update_ui(this);
+    }
 }
 
 void UI::draw(){
@@ -43,6 +48,10 @@ void UI::draw(){
     al_draw_filled_rectangle(x, y, x + w, y + h, al_map_rgba(32,32,32,220));
     al_draw_rectangle(x, y, x + w, y + h, al_map_rgb(255,255,255), 2.0f);
     // 可以在這裡顯示建築資訊、按鈕等等
+
+    if(target_build){
+        target_build->draw_ui(this, x, y, w, h);
+    }
 }
 
 Build* UI::get_target() const {
