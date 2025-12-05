@@ -2,7 +2,7 @@
 #define GAME_H_INCLUDED
 
 #include <allegro5/allegro.h>
-#include "UI.h"
+//#include "UI.h"
 
 /**
  * @brief Main class that runs the whole game.
@@ -26,6 +26,7 @@ private:
 	enum class STATE {
 		START, // -> LEVEL
 		LEVEL, // -> PAUSE, END
+		UI,
 		PAUSE, // -> LEVEL
 		END
 	};
@@ -37,7 +38,7 @@ private:
 	ALLEGRO_DISPLAY *display;
 	ALLEGRO_TIMER *timer;
 	ALLEGRO_EVENT_QUEUE *event_queue;
-	UI *ui;
+	//UI *ui;
 };
 
 #endif

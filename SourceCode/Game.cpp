@@ -5,11 +5,16 @@
 #include "data/SoundCenter.h"
 #include "data/ImageCenter.h"
 #include "data/FontCenter.h"
+
 #include "Player.h"
-#include "Level.h"
-#include "Hero.h"
-#include "towers/Tower.h"
-#include "building/building.h"
+#include "object/Build.h"
+#include "object/hero.h"
+#include "object/ui.h"
+#include "object/Phone.h"
+#include "info/StarveInfo.h"
+#include "info/CoinInfo.h"
+#include "Map.h"
+
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
@@ -17,6 +22,8 @@
 #include <allegro5/allegro_acodec.h>
 #include <vector>
 #include <cstring>
+#include <cstdlib>
+#include <ctime>
 
 // fixed settings
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
@@ -32,9 +39,10 @@ constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
 void
 Game::execute() {
 	DataCenter *DC = DataCenter::get_instance();
+	std::srand((unsigned)std::time(nullptr));
 	// main game loop
 	bool run = true;
-	while(run) {
+	while(run) {   
 		// process all events here
 		al_wait_for_event(event_queue, &event);
 		switch(event.type) {
@@ -138,21 +146,13 @@ Game::game_init() {
 	// init font setting
 	FC->init();
 
-	ui = new UI();
-	ui->init();
-
-	DC->level->init();
-
 	DC->hero->init();
+	DC->ui->init();
+	DC->map->init();
+	DC->phone->init();
 
-
-	DC->Buildings.emplace_back(new Building(Point{200, 400}));
-	DC->Buildings.emplace_back(new Building(Point{50, 350}));
-	DC->Buildings.emplace_back(new Building(Point{400, 300}));
-	for (Building *b : DC->Buildings) {
-		b->init();
-	}
-   
+	DC->starve_info->init();
+	DC->coin_info->init();
 
 	// game start
 	background = IC->get(background_img_path);
@@ -180,7 +180,7 @@ Game::game_update() {
 			static ALLEGRO_SAMPLE_INSTANCE *instance = nullptr;
 			if(!is_played) {
 				instance = SC->play(game_start_sound_path, ALLEGRO_PLAYMODE_ONCE);
-				DC->level->load_level(1);
+				//DC->level->load_level(1);
 				is_played = true;
 			}
 
@@ -189,39 +189,20 @@ Game::game_update() {
 				state = STATE::LEVEL;
 			}
 			break;
-		} case STATE::LEVEL: {
+		} case STATE::LEVEL: 
+		  case STATE::UI: {
 			static bool BGM_played = false;
 			if(!BGM_played) {
-				background = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP, 0.4f);
-                BGM_played = true;
+				background = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP);
+				BGM_played = true;
 			}
-			// 假設我們用鍵盤的 '+' 和 '-' 來調整背景音樂
-            static float current_vol = 0.4f; // 記錄目前音量
-			// 按下大鍵盤的 '+' 增加音量
-            if(DC->key_state[ALLEGRO_KEY_EQUALS] && !DC->prev_key_state[ALLEGRO_KEY_EQUALS]) {
-                current_vol += 0.05f;
-                if(current_vol > 1.0f) current_vol = 1.0f;
-                SC->set_volume(background, current_vol);
-                debug_log("Volume Up: %f\n", current_vol);
-            }
-            // 按下大鍵盤的 '-' 降低音量
-            if(DC->key_state[ALLEGRO_KEY_MINUS] && !DC->prev_key_state[ALLEGRO_KEY_MINUS]) {
-                current_vol -= 0.05f;
-                if(current_vol < 0.0f) current_vol = 0.0f;
-                SC->set_volume(background, current_vol);
-                debug_log("Volume Down: %f\n", current_vol);
-            }
-			
+
 			if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
 				SC->toggle_playing(background);
 				debug_log("<Game> state: change to PAUSE\n");
 				state = STATE::PAUSE;
 			}
-			if(DC->level->remain_monsters() == 0 && DC->monsters.size() == 0) {
-				debug_log("<Game> state: change to END\n");
-				state = STATE::END;
-			}
-			if(DC->player->HP == 0) {
+			if(DC->hero->get_starve() <= 0.0) {
 				debug_log("<Game> state: change to END\n");
 				state = STATE::END;
 			}
@@ -241,16 +222,24 @@ Game::game_update() {
 	if(state != STATE::PAUSE) {
 		DC->player->update();
 		SC->update();
-		ui->update();
-		DC->hero->update();
-		for (Building *b : DC->Buildings) {
-			b->update();
-		}
+		//ui->update();
 		if(state != STATE::START) {
-			DC->level->update();
+			//DC->level->update();
 			OC->update();
+			DC->hero->update();
+
+			DC->starve_info->update(DC->hero->get_starve());
+			DC->coin_info->update(DC->hero->get_deposit());
+			for(auto b : DC->build) if(b) b->update();
+		}
+		if(DC->ui && DC->ui->is_open()){ // 當 UI 開啟時通常暫停其他更新：直接 return true 或跳過 LEVEL 更新
+			DC->ui->update();
+		}
+		if(DC->phone && DC->phone->is_open()){
+			DC->phone->update();
 		}
 	}
+
 	// game_update is finished. The states of current frame will be previous states of the next frame.
 	memcpy(DC->prev_key_state, DC->key_state, sizeof(DC->key_state));
 	memcpy(DC->prev_mouse_state, DC->mouse_state, sizeof(DC->mouse_state));
@@ -276,6 +265,7 @@ Game::game_draw() {
 				DC->game_field_length, 0,
 				DC->window_width, DC->window_height,
 				al_map_rgb(100, 100, 100));
+		
 		if(DC->game_field_length < DC->window_height)
 			al_draw_filled_rectangle(
 				0, DC->game_field_length,
@@ -283,18 +273,24 @@ Game::game_draw() {
 				al_map_rgb(100, 100, 100));
 		// user interface
 		if(state != STATE::START) {
-			DC->level->draw();
-			DC->hero->draw();
-			for (Building *b : DC->Buildings) {
-				b->draw();
-			}
-			ui->draw();
 			OC->draw();
+			DC->map->draw();
+			DC->hero->draw();
+			DC->starve_info->draw();
+			DC->coin_info->draw();
+		}
+		if(DC->ui && DC->ui->is_open()){
+			DC->ui->draw(); // 畫在最上層
+		}
+		if(DC->phone && DC->phone->is_open()){
+			DC->phone->draw();
 		}
 	}
 	switch(state) {
 		case STATE::START: {
 		} case STATE::LEVEL: {
+			break;
+		} case STATE::UI: {
 			break;
 		} case STATE::PAUSE: {
 			// game layout cover
