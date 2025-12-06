@@ -7,6 +7,7 @@
 #include "data/FontCenter.h"
 
 #include "Player.h"
+#include "Level.h"
 #include "object/Build.h"
 #include "object/hero.h"
 #include "object/ui.h"
@@ -154,6 +155,8 @@ Game::game_init() {
 	DC->starve_info->init();
 	DC->coin_info->init();
 
+	DC->level->init();
+
 	// game start
 	background = IC->get(background_img_path);
 	debug_log("Game state: change to START\n");
@@ -196,6 +199,25 @@ Game::game_update() {
 				background = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP);
 				BGM_played = true;
 			}
+
+			//------------------------------------------------
+			// 假設我們用鍵盤的 '+' 和 '-' 來調整背景音樂
+            static float current_vol = 0.4f; // 記錄目前音量
+			// 按下大鍵盤的 '+' 增加音量
+            if(DC->key_state[ALLEGRO_KEY_EQUALS] && !DC->prev_key_state[ALLEGRO_KEY_EQUALS]) {
+                current_vol += 0.05f;
+                if(current_vol > 1.0f) current_vol = 1.0f;
+                SC->set_volume(background, current_vol);
+                debug_log("Volume Up: %f\n", current_vol);
+            }
+            // 按下大鍵盤的 '-' 降低音量
+            if(DC->key_state[ALLEGRO_KEY_MINUS] && !DC->prev_key_state[ALLEGRO_KEY_MINUS]) {
+                current_vol -= 0.05f;
+                if(current_vol < 0.0f) current_vol = 0.0f;
+                SC->set_volume(background, current_vol);
+                debug_log("Volume Down: %f\n", current_vol);
+            }
+			//------------------------------------------------
 
 			if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
 				SC->toggle_playing(background);
@@ -274,6 +296,7 @@ Game::game_draw() {
 		// user interface
 		if(state != STATE::START) {
 			OC->draw();
+			DC->level->draw();
 			DC->map->draw();
 			DC->hero->draw();
 			DC->starve_info->draw();

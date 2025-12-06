@@ -9,7 +9,8 @@
 #include "../shapes/Point.h"
 #include "../shapes/Rectangle.h"
 #include "../Utils.h"
-#include "../building/Building.h"
+//#include "../building/Building.h"
+#include "../object/Build.h"
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
 #include <cstdlib>
@@ -191,8 +192,8 @@ void Monster::update() {
     }
 
     // ===== 2. 找出所有「正在冒驚嘆號」的建築 =====
-    std::vector<Building*> alert_buildings;
-    for (Building *b : DC->Buildings) {
+    std::vector<Build*> alert_buildings;
+    for (Build *b : DC->build) {
         if (b && b->is_alert()) {
             alert_buildings.push_back(b);
         }
