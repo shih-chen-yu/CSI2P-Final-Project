@@ -54,6 +54,15 @@ Game::execute() {
 				break;
 			} case ALLEGRO_EVENT_KEY_DOWN: {
 				DC->key_state[event.keyboard.keycode] = true;
+
+				//處理各種全局的按鍵事件
+				switch (event.keyboard.keycode) {
+					case ALLEGRO_KEY_M:
+						if(state != STATE::START && state != STATE::PAUSE) DC->phone->toggle();
+						break;
+					default:
+						break;
+				}
 				break;
 			} case ALLEGRO_EVENT_KEY_UP: {
 				DC->key_state[event.keyboard.keycode] = false;

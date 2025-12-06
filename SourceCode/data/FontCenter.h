@@ -30,6 +30,7 @@ public:
 public:
 	std::map<int, ALLEGRO_FONT*> caviar_dreams;
 	std::map<int, ALLEGRO_FONT*> courier_new;
+	std::map<int, ALLEGRO_FONT*> NotoSansCJK;
 private:
 	FontCenter() {}
 };
