@@ -15,6 +15,7 @@ class Build_A : public Build{
     public:
         void draw_ui(UI* ui, float x, float y, float w, float h) override;
         void update_ui(UI* ui) override;
+        BuildStateA get_stateA() const { return StateA; }
     protected:
         const char* sprite_basename() const override {
             return "building2";  // ./assets/image/building/shop.png

@@ -19,6 +19,10 @@ GIFCenter::get(const std::string &path) {
 	std::map<std::string, ALGIF_ANIMATION*>::iterator it = gifs.find(path);
 	if(it == gifs.end()) {
 		ALGIF_ANIMATION *gif = algif_load_animation(path.c_str());
+		if (!gif) {
+            // 再印一行錯誤，確認是哪個路徑掛掉
+            debug_log("[GIFCenter] FAILED to load: '%s'\n", path.c_str());
+        }
 		GAME_ASSERT(gif != nullptr, "cannot find GIF: %s.", path.c_str());
 		gifs[path] = gif;
 		return gif;

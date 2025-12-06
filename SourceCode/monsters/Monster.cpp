@@ -9,8 +9,13 @@
 #include "../shapes/Point.h"
 #include "../shapes/Rectangle.h"
 #include "../Utils.h"
+<<<<<<< HEAD
 //#include "../building/Building.h"
 #include "../object/Build.h"
+=======
+#include "../object/Build.h"          // ★ 用 Build*
+#include "../Build_object/Build_A.h"  // ★ 用 Build_A*
+>>>>>>> d09afb7843400e0d790399a1d82f713f9a217fa7
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
 #include <cstdlib>
@@ -86,21 +91,16 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
     bitmap_switch_counter = 0;
     bitmap_switch_freq = 10;   // 預設值，子類可以覆蓋
 
-    
     // === 修改開始：更大幅度的分散 ===
     if(!path.empty()) {
-        // 方法：隨機選取「路徑上前 6 格」的其中一格作為出生點
-        // 這樣怪物就會沿著路散開，而不是擠在同一個像素
         int range = 6; 
-        if(path.size() < 6) range = path.size(); // 防止路徑太短爆掉
+        if(path.size() < 6) range = path.size(); 
         
-        int random_index = rand() % range; // 隨機選第 0 ~ 5 格
+        int random_index = rand() % range;
         const Point &grid = path[random_index]; 
         
         const Rectangle &region = DC->level->grid_to_region(grid);
 
-        // 在那一格裡面，再做一點點微小的亂數偏移 (例如 -15 ~ 15)
-        // 這樣就不會死板板的剛好都在格子正中間
         int pixel_offset_x = (rand() % 30) - 15;
         int pixel_offset_y = (rand() % 30) - 15;
 
@@ -116,7 +116,7 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
     ai_state = AIState::WANDER;
     vx = vy = 0.0;
     wander_timer = 0.0;
-    target_building = nullptr;
+    target_building = nullptr;   // ★ 注意：Monster.h 裡請用 Build* target_building;
     chase_phase = 0;
 }
 
@@ -124,10 +124,8 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
  * @brief 選一個新的亂走方向
  */
 void Monster::choose_random_direction() {
-    // 讓實際速度比 v 小一點，整體變慢
     double speed = static_cast<double>(v) * MONSTER_SPEED_SCALE; // v: 像素/秒
 
-    // 隨機選一個「只走上下左右」的方向
     int d = std::rand() % 4;
     switch (d) {
         case 0: // 右
@@ -153,12 +151,11 @@ void Monster::choose_random_direction() {
     wander_timer = 1.0 + (static_cast<double>(std::rand()) / RAND_MAX) * 2.0;
 }
 
-
 /**
  * @details
  * 1. 處理動畫 frame 切換（有做防呆，避免 frame index 爆掉）
- * 2. 判斷是否有任一棟 building 在冒驚嘆號：
- *    - 有：GO_TO_BUILDING，往那棟 building center 移動
+ * 2. 判斷是否有任一 Build_A 有食物：
+ *    - 有：GO_TO_BUILDING，往那棟建築 center 移動
  *    - 沒：WANDER，隨機亂走，碰邊界反彈
  * 3. 更新 hit box 大小
  */
@@ -170,10 +167,9 @@ void Monster::update() {
     double cx = shape->center_x();
     double cy = shape->center_y();
 
-    // ===== 1. 動畫 frame 切換（保護 bitmap_img_ids 範圍） =====
+    // ===== 1. 動畫 frame 切換 =====
     int dir_idx = static_cast<int>(dir);
 
-    // 確保 bitmap_img_ids 至少有 4 個方向（避免 out-of-range）
     if (bitmap_img_ids.size() < 4) {
         bitmap_img_ids.resize(4);
     }
@@ -191,36 +187,46 @@ void Monster::update() {
         bitmap_switch_counter = bitmap_switch_freq;
     }
 
+<<<<<<< HEAD
     // ===== 2. 找出所有「正在冒驚嘆號」的建築 =====
     std::vector<Build*> alert_buildings;
     for (Build *b : DC->build) {
         if (b && b->is_alert()) {
             alert_buildings.push_back(b);
+=======
+    // ===== 2. 找出所有「有食物可以買」的 Build_A =====
+    std::vector<Build_A*> food_buildings;
+
+    for (Build *b : DC->build) {     // ★ 用 DataCenter::build
+        if (!b) continue;
+
+        Build_A* ba = dynamic_cast<Build_A*>(b);
+        if (!ba) continue;
+
+        if (ba->get_stateA() == BuildStateA::Food) {
+            food_buildings.push_back(ba);
+>>>>>>> d09afb7843400e0d790399a1d82f713f9a217fa7
         }
     }
 
-    // ===== 2-1. 決定這一幀的目標建築 =====
-    // A. 已經有目標，且那棟建築還在冒驚嘆號 → 繼續追，不換目標
-    if (target_building && target_building->is_alert()) {
-        ai_state = AIState::GO_TO_BUILDING;
-    }
-    // B. 原本沒有目標，或原本目標不再冒驚嘆號 → 重新決定
-    else {
-        target_building = nullptr;
-
-        if (!alert_buildings.empty()) {
-            // 從有事件的建築中，隨機挑一棟
-            int idx = std::rand() % static_cast<int>(alert_buildings.size());
-            target_building = alert_buildings[idx];
-
+    // ===== 2-1. 根據食物建築決定目標 =====
+    if (target_building) {
+        Build_A* ba = dynamic_cast<Build_A*>(target_building);
+        if (ba && ba->get_stateA() == BuildStateA::Food) {
             ai_state = AIState::GO_TO_BUILDING;
-            chase_phase = 0;      // 重新從「先對齊 X」開始追
         } else {
-            // 完全沒建築在冒驚嘆號 → 回到亂走
-            if (ai_state == AIState::GO_TO_BUILDING) {
-                ai_state = AIState::WANDER;
-                wander_timer = 0.0;
-            }
+            target_building = nullptr;
+        }
+    }
+
+    if (!target_building) {
+        if (!food_buildings.empty()) {
+            int idx = std::rand() % static_cast<int>(food_buildings.size());
+            target_building = food_buildings[idx];      // Build* 成員，指向 Build_A 沒問題
+            ai_state = AIState::GO_TO_BUILDING;
+            chase_phase = 0;
+        } else {
+            ai_state = AIState::WANDER;
         }
     }
 
@@ -228,8 +234,9 @@ void Monster::update() {
     double step = static_cast<double>(v) * MONSTER_SPEED_SCALE / fps;
 
     if (ai_state == AIState::GO_TO_BUILDING && target_building) {
-        // 追 building：先對齊 X，再對齊 Y
-        Point target = target_building->center();
+        // 追建築：先對齊 X，再對齊 Y
+        Point target = target_building->center();  // ★ 需要 Build 有 center()
+
         double dx = target.x - cx;
         double dy = target.y - cy;
 
@@ -242,7 +249,7 @@ void Monster::update() {
                 cx += (dx > 0 ? move : -move);
                 dir = convert_dir(Point{ (dx > 0 ? 1.0 : -1.0), 0.0 });
             } else {
-                chase_phase = 1; // X 對齊後進入調整 Y
+                chase_phase = 1; // X 對齊後→調整 Y
             }
         }
 
@@ -253,8 +260,7 @@ void Monster::update() {
                 cy += (dy > 0 ? move : -move);
                 dir = convert_dir(Point{ 0.0, (dy > 0 ? 1.0 : -1.0) });
             } else {
-                // X 和 Y 都差不多對齊 → 怪就停在建築附近
-                // 不切回 WANDER，維持在 building 附近等事件消失
+                // X 和 Y 都差不多對齊 → 怪停在建築附近
             }
         }
     } else {
@@ -268,7 +274,6 @@ void Monster::update() {
         cx += vx / fps;
         cy += vy / fps;
 
-        // 邊界檢查（限制在 game_field 區域內）
         double min_x = 0.0;
         double max_x = static_cast<double>(DC->game_field_length);
         double min_y = 0.0;
@@ -315,7 +320,6 @@ void Monster::update() {
         (hc - w / 2. + w), (vc - h / 2. + h)
     });
 }
-
 
 void Monster::draw() {
     ImageCenter *IC = ImageCenter::get_instance();

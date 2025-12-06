@@ -26,12 +26,9 @@ private:
 	OperationCenter() {}
 private:
 	void _update_monster();
-	void _update_monster_player();
+	void _update_hero_build();
 private:
 	void _draw_monster();
-
-private:
-	void _update_hero_build();
 };
 
 #endif

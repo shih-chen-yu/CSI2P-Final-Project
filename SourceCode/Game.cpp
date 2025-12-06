@@ -5,7 +5,6 @@
 #include "data/SoundCenter.h"
 #include "data/ImageCenter.h"
 #include "data/FontCenter.h"
-
 #include "Player.h"
 #include "Level.h"
 #include "object/Build.h"
@@ -15,7 +14,6 @@
 #include "info/StarveInfo.h"
 #include "info/CoinInfo.h"
 #include "Map.h"
-
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
@@ -43,7 +41,7 @@ Game::execute() {
 	std::srand((unsigned)std::time(nullptr));
 	// main game loop
 	bool run = true;
-	while(run) {   
+	while(run) {
 		// process all events here
 		al_wait_for_event(event_queue, &event);
 		switch(event.type) {
@@ -146,14 +144,13 @@ Game::game_init() {
 
 	// init font setting
 	FC->init();
-
-	DC->hero->init();
 	DC->ui->init();
 	DC->map->init();
 	DC->phone->init();
-
+	DC->hero->init();
 	DC->starve_info->init();
 	DC->coin_info->init();
+   
 
 	DC->level->init();
 
@@ -183,7 +180,7 @@ Game::game_update() {
 			static ALLEGRO_SAMPLE_INSTANCE *instance = nullptr;
 			if(!is_played) {
 				instance = SC->play(game_start_sound_path, ALLEGRO_PLAYMODE_ONCE);
-				//DC->level->load_level(1);
+				DC->level->load_level(1);
 				is_played = true;
 			}
 
@@ -196,11 +193,9 @@ Game::game_update() {
 		  case STATE::UI: {
 			static bool BGM_played = false;
 			if(!BGM_played) {
-				background = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP);
-				BGM_played = true;
+				background = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP, 0.4f);
+                BGM_played = true;
 			}
-
-			//------------------------------------------------
 			// 假設我們用鍵盤的 '+' 和 '-' 來調整背景音樂
             static float current_vol = 0.4f; // 記錄目前音量
 			// 按下大鍵盤的 '+' 增加音量
@@ -217,12 +212,15 @@ Game::game_update() {
                 SC->set_volume(background, current_vol);
                 debug_log("Volume Down: %f\n", current_vol);
             }
-			//------------------------------------------------
-
+			
 			if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
 				SC->toggle_playing(background);
 				debug_log("<Game> state: change to PAUSE\n");
 				state = STATE::PAUSE;
+			}
+			if(DC->level->remain_monsters() == 0 && DC->monsters.size() == 0) {
+				debug_log("<Game> state: change to END\n");
+				state = STATE::END;
 			}
 			if(DC->hero->get_starve() <= 0.0) {
 				debug_log("<Game> state: change to END\n");
@@ -245,14 +243,17 @@ Game::game_update() {
 		DC->player->update();
 		SC->update();
 		//ui->update();
+
 		if(state != STATE::START) {
-			//DC->level->update();
 			OC->update();
+			
 			DC->hero->update();
 
 			DC->starve_info->update(DC->hero->get_starve());
+			
 			DC->coin_info->update(DC->hero->get_deposit());
 			for(auto b : DC->build) if(b) b->update();
+			
 		}
 		if(DC->ui && DC->ui->is_open()){ // 當 UI 開啟時通常暫停其他更新：直接 return true 或跳過 LEVEL 更新
 			DC->ui->update();
@@ -287,7 +288,7 @@ Game::game_draw() {
 				DC->game_field_length, 0,
 				DC->window_width, DC->window_height,
 				al_map_rgb(100, 100, 100));
-		
+				
 		if(DC->game_field_length < DC->window_height)
 			al_draw_filled_rectangle(
 				0, DC->game_field_length,

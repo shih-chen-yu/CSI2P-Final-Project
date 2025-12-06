@@ -4,11 +4,12 @@
 #include "../Object.h"
 #include "../shapes/Rectangle.h"
 #include "../shapes/Point.h"
+#include "../object/Build.h"
+#include "../Build_object/Build_A.h"
 #include <vector>
 #include <queue>
 
 enum class Dir;
-class Building;   // 前向宣告，讓 Monster 可以持有 Building*
 
 // fixed settings
 enum class MonsterType {
@@ -94,7 +95,7 @@ private:
     double wander_timer = 0.0;
 
     // 目前鎖定要去的建築物（如果有）
-    Building *target_building = nullptr;
+    Build  *target_building = nullptr;
 
     // 追建築物分兩階段：0 = 先走 X, 1 = 再走 Y
     int chase_phase = 0;

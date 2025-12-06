@@ -1,5 +1,6 @@
 #include "DataCenter.h"
 #include <cstring>
+
 #include "../Level.h"
 #include "../Player.h"
 #include "../monsters/Monster.h"
@@ -33,9 +34,9 @@ DataCenter::DataCenter() {
     memset(mouse_state, false, sizeof(mouse_state));
     memset(prev_mouse_state, false, sizeof(prev_mouse_state));
 
-    player   = new Player();
     level    = new Level();
     hero = new HERO();
+	player = new Player();
 
 	ui = new UI();
 	map = new Map();
@@ -47,7 +48,6 @@ DataCenter::DataCenter() {
 }
 
 DataCenter::~DataCenter() {
-    delete level;
     if(player) delete player;
 	if(hero) delete hero;
 	for(auto b : build) delete b;
@@ -57,18 +57,4 @@ DataCenter::~DataCenter() {
 	if(starve_info) delete starve_info;
 	if(coin_info) delete coin_info;
 
-    // 刪掉所有怪物
-    for (Monster *&m : monsters) {
-        delete m;
-    }
-
-    // 刪掉所有塔
-    for (Tower *&t : towers) {
-        delete t;
-    }
-
-    // 如果你已經不再使用 Bullet，可以把下面這段也移除，順便從 DataCenter.h 刪掉 towerBullets
-    for (Bullet *&tb : towerBullets) {
-        delete tb;
-    }
 }

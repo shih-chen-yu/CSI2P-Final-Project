@@ -2,6 +2,7 @@
 #define BUILD_H_INCLUDED
 
 #include "../Object.h"
+#include "../shapes/Point.h" 
 #include<string>
 #include<map>
 
@@ -27,6 +28,10 @@ class Build : public Object{
         void change_state(int state);
         void set_center(float cx, float cy); // 新增：設定建築中心位置
 
+        Point center() const {
+            return Point(shape->center_x(), shape->center_y());
+        }
+        
         virtual void draw_ui(UI* ui, float x, float y, float w, float h);
         virtual void update_ui(UI* ui);
     protected:

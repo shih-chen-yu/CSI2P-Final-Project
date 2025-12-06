@@ -4,8 +4,8 @@
 #include <vector>
 #include <utility>
 #include <tuple>
-#include "./shapes/Rectangle.h"
-
+#include "shapes/Point.h"
+#include "shapes/Rectangle.h"
 /**
  * @brief The class manages data of each level.
  * @details The class could load level with designated input file and record. The level itself will decide when to create next monster.
