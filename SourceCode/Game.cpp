@@ -27,6 +27,8 @@
 // fixed settings
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
 constexpr char game_start_sound_path[] = "./assets/sound/growl.wav";
+constexpr char menu_img_path[]           = "./assets/image/MenuBackground.png";    // 主選單
+constexpr char select_img_path[]         = "./assets/image/SelectBackground.png";  // 選角/選關
 constexpr char background_img_path[] = "./assets/image/StartBackground.jpg";
 constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
 
@@ -150,10 +152,15 @@ Game::game_init() {
 	DC->hero->init();
 	DC->starve_info->init();
 	DC->coin_info->init();
-   
+	
+	menu_bg   = IC->get(menu_img_path);
+	select_bg = IC->get(select_img_path);
+	background = IC->get(background_img_path); // 遊戲中用的背景
 
-	// game start
-	background = IC->get(background_img_path);
+	// BGM 初始設定
+    bgm_instance = nullptr;
+    bgm_volume = 0.4f;  // 預設 40%
+
 	debug_log("Game state: change to START\n");
 	state = STATE::START;
 	al_start_timer(timer);
@@ -167,104 +174,170 @@ Game::game_init() {
  */
 bool
 Game::game_update() {
-	DataCenter *DC = DataCenter::get_instance();
-	OperationCenter *OC = OperationCenter::get_instance();
-	SoundCenter *SC = SoundCenter::get_instance();
-	static ALLEGRO_SAMPLE_INSTANCE *background = nullptr;
+    DataCenter *DC = DataCenter::get_instance();
+    OperationCenter *OC = OperationCenter::get_instance();
+    SoundCenter *SC = SoundCenter::get_instance();
+    static ALLEGRO_SAMPLE_INSTANCE *bgm_instance = nullptr; // BGM 用的 sample instance
 
-	switch(state) {
-		case STATE::START: {
-			static bool is_played = false;
-			static ALLEGRO_SAMPLE_INSTANCE *instance = nullptr;
-			if(!is_played) {
-				instance = SC->play(game_start_sound_path, ALLEGRO_PLAYMODE_ONCE);
-				DC->level->load_level(1);
-				is_played = true;
-			}
+    switch(state) {
+        // ===== 主選單 =====
+        case STATE::START: {
+            static bool is_played = false;
+            if(!is_played) {
+                SC->play(game_start_sound_path, ALLEGRO_PLAYMODE_ONCE);
+                is_played = true;
+            }
 
-			if(!SC->is_playing(instance)) {
-				debug_log("<Game> state: change to LEVEL\n");
-				state = STATE::LEVEL;
-			}
-			break;
-		} case STATE::LEVEL: 
-		  case STATE::UI: {
-			static bool BGM_played = false;
-			if(!BGM_played) {
-				background = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP, 0.4f);
-                BGM_played = true;
-			}
-			// 假設我們用鍵盤的 '+' 和 '-' 來調整背景音樂
-            static float current_vol = 0.4f; // 記錄目前音量
-			// 按下大鍵盤的 '+' 增加音量
+            // 按 ENTER → 進到選角 / 選關畫面
+            if(DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
+                debug_log("<Game> state: change to UI (Select)\n");
+                state = STATE::UI;
+            }
+
+            // ESC 直接結束遊戲
+            if(DC->key_state[ALLEGRO_KEY_ESCAPE] && !DC->prev_key_state[ALLEGRO_KEY_ESCAPE]) {
+                return false;
+            }
+            break;
+        }
+
+        // ===== 遊戲主畫面 =====
+        case STATE::LEVEL: {
+            // 如果前面還沒開始 BGM（例如直接跳 LEVEL），這裡補播
+            if(!bgm_instance) {
+                bgm_instance = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP, bgm_volume);
+            }
+
+            // 用 + / - 微調音量（跟之前邏輯一樣，但改成用 bgm_volume）
             if(DC->key_state[ALLEGRO_KEY_EQUALS] && !DC->prev_key_state[ALLEGRO_KEY_EQUALS]) {
-                current_vol += 0.05f;
-                if(current_vol > 1.0f) current_vol = 1.0f;
-                SC->set_volume(background, current_vol);
-                debug_log("Volume Up: %f\n", current_vol);
+                bgm_volume += 0.05f;
+                if(bgm_volume > 1.0f) bgm_volume = 1.0f;
+                if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
+                debug_log("Volume Up: %f\n", bgm_volume);
             }
-            // 按下大鍵盤的 '-' 降低音量
             if(DC->key_state[ALLEGRO_KEY_MINUS] && !DC->prev_key_state[ALLEGRO_KEY_MINUS]) {
-                current_vol -= 0.05f;
-                if(current_vol < 0.0f) current_vol = 0.0f;
-                SC->set_volume(background, current_vol);
-                debug_log("Volume Down: %f\n", current_vol);
+                bgm_volume -= 0.05f;
+                if(bgm_volume < 0.0f) bgm_volume = 0.0f;
+                if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
+                debug_log("Volume Down: %f\n", bgm_volume);
             }
-			
-			if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
-				SC->toggle_playing(background);
-				debug_log("<Game> state: change to PAUSE\n");
-				state = STATE::PAUSE;
-			}
-			if(DC->level->remain_monsters() == 0 && DC->monsters.size() == 0) {
-				debug_log("<Game> state: change to END\n");
-				state = STATE::END;
-			}
-			if(DC->hero->get_starve() <= 0.0) {
-				debug_log("<Game> state: change to END\n");
-				state = STATE::END;
-			}
-			break;
-		} case STATE::PAUSE: {
-			if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
-				SC->toggle_playing(background);
-				debug_log("<Game> state: change to LEVEL\n");
-				state = STATE::LEVEL;
-			}
-			break;
-		} case STATE::END: {
-			return false;
-		}
-	}
-	// If the game is not paused, we should progress update.
-	if(state != STATE::PAUSE) {
-		DC->player->update();
-		SC->update();
-		//ui->update();
 
-		if(state != STATE::START) {
-			OC->update();
-			
-			DC->hero->update();
+            // P 暫停
+            if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
+                if(bgm_instance) SC->toggle_playing(bgm_instance);
+                debug_log("<Game> state: change to PAUSE\n");
+                state = STATE::PAUSE;
+            }
 
-			DC->starve_info->update(DC->hero->get_starve());
-			
-			DC->coin_info->update(DC->hero->get_deposit());
-			for(auto b : DC->build) if(b) b->update();
-			
-		}
-		if(DC->ui && DC->ui->is_open()){ // 當 UI 開啟時通常暫停其他更新：直接 return true 或跳過 LEVEL 更新
-			DC->ui->update();
-		}
-		if(DC->phone && DC->phone->is_open()){
-			DC->phone->update();
-		}
-	}
+            // 過關 / 失敗條件
+            if(DC->level->remain_monsters() == 0 && DC->monsters.size() == 0) {
+                debug_log("<Game> state: change to END\n");
+                state = STATE::END;
+            }
+            if(DC->hero->get_starve() <= 0.0) {
+                debug_log("<Game> state: change to END\n");
+                state = STATE::END;
+            }
+            break;
+        }
 
-	// game_update is finished. The states of current frame will be previous states of the next frame.
-	memcpy(DC->prev_key_state, DC->key_state, sizeof(DC->key_state));
-	memcpy(DC->prev_mouse_state, DC->mouse_state, sizeof(DC->mouse_state));
-	return true;
+        // ===== 選角 / 選關畫面 =====
+        case STATE::UI: {
+            // 在選角畫面就開始播 BGM，讓玩家可以試聽音量
+            if(!bgm_instance) {
+                bgm_instance = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP, bgm_volume);
+            }
+
+            // 滑桿位置（要跟 game_draw 裡畫的對齊）
+            float slider_x1 = DC->window_width * 0.2f;
+            float slider_x2 = DC->window_width * 0.8f;
+            float slider_y  = DC->window_height * 0.7f;
+
+            // 滑鼠拖曳調音量（左鍵）
+            if(DC->mouse_state[1]) { // 1 = 左鍵
+                int mx = DC->mouse.x;
+                int my = DC->mouse.y;
+                if(mx >= slider_x1 && mx <= slider_x2 &&
+                   my >= slider_y - 10 && my <= slider_y + 10) {
+
+                    float t = (mx - slider_x1) / (slider_x2 - slider_x1);
+                    if(t < 0.0f) t = 0.0f;
+                    if(t > 1.0f) t = 1.0f;
+                    bgm_volume = t;
+                    if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
+                }
+            }
+
+            // 也可以用左右鍵微調
+            if(DC->key_state[ALLEGRO_KEY_LEFT] && !DC->prev_key_state[ALLEGRO_KEY_LEFT]) {
+                bgm_volume -= 0.05f;
+                if(bgm_volume < 0.0f) bgm_volume = 0.0f;
+                if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
+            }
+            if(DC->key_state[ALLEGRO_KEY_RIGHT] && !DC->prev_key_state[ALLEGRO_KEY_RIGHT]) {
+                bgm_volume += 0.05f;
+                if(bgm_volume > 1.0f) bgm_volume = 1.0f;
+                if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
+            }
+
+            // ENTER → 開始第 1 關，沿用目前的 bgm_volume
+            if(DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
+                DC->level->load_level(1);
+                debug_log("<Game> state: change to LEVEL (GameScene)\n");
+                state = STATE::LEVEL;
+            }
+
+            // BACKSPACE 回到主選單
+            if(DC->key_state[ALLEGRO_KEY_BACKSPACE] && !DC->prev_key_state[ALLEGRO_KEY_BACKSPACE]) {
+                debug_log("<Game> state: back to START\n");
+                state = STATE::START;
+            }
+            break;
+        }
+
+        // ===== 暫停 =====
+        case STATE::PAUSE: {
+            if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
+                SC->toggle_playing(bgm_instance);
+                debug_log("<Game> state: change to LEVEL\n");
+                state = STATE::LEVEL;
+            }
+            break;
+        }
+
+        // ===== 結束 =====
+        case STATE::END: {
+            return false;
+        }
+    }
+
+    // ====== 下面是「遊戲內物件的更新」 ======
+    if(state != STATE::PAUSE) {
+        DC->player->update();
+        SC->update();
+
+        // 真正的遊戲邏輯只在 LEVEL 時進行
+        if(state == STATE::LEVEL) {
+            OC->update();
+
+            DC->hero->update();
+            DC->starve_info->update(DC->hero->get_starve());
+            DC->coin_info->update(DC->hero->get_deposit());
+
+            for(auto b : DC->build) if(b) b->update();
+        }
+
+        if(DC->ui && DC->ui->is_open()){
+            DC->ui->update();
+        }
+        if(DC->phone && DC->phone->is_open()){
+            DC->phone->update();
+        }
+    }
+
+    memcpy(DC->prev_key_state, DC->key_state, sizeof(DC->key_state));
+    memcpy(DC->prev_mouse_state, DC->mouse_state, sizeof(DC->mouse_state));
+    return true;
 }
 
 /**
@@ -272,59 +345,117 @@ Game::game_update() {
  */
 void
 Game::game_draw() {
-	DataCenter *DC = DataCenter::get_instance();
-	OperationCenter *OC = OperationCenter::get_instance();
-	FontCenter *FC = FontCenter::get_instance();
+    DataCenter *DC = DataCenter::get_instance();
+    OperationCenter *OC = OperationCenter::get_instance();
+    FontCenter *FC = FontCenter::get_instance();
 
-	// Flush the screen first.
-	al_clear_to_color(al_map_rgb(100, 100, 100));
-	if(state != STATE::END) {
-		// background
-		al_draw_bitmap(background, 0, 0, 0);
-		if(DC->game_field_length < DC->window_width)
-			al_draw_filled_rectangle(
-				DC->game_field_length, 0,
-				DC->window_width, DC->window_height,
-				al_map_rgb(100, 100, 100));
-				
-		if(DC->game_field_length < DC->window_height)
-			al_draw_filled_rectangle(
-				0, DC->game_field_length,
-				DC->window_width, DC->window_height,
-				al_map_rgb(100, 100, 100));
-		// user interface
-		if(state != STATE::START) {
-			OC->draw();
-			DC->map->draw();
-			DC->hero->draw();
-			DC->starve_info->draw();
-			DC->coin_info->draw();
+    al_clear_to_color(al_map_rgb(100, 100, 100));
+
+    if(state == STATE::END) {
+        al_flip_display();
+        return;
+    }
+
+    if(state == STATE::START) {
+        // ===== 主選單 =====
+        if(menu_bg) {
+            al_draw_bitmap(menu_bg, 0, 0, 0);
+        }
+        al_draw_text(
+            FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
+            DC->window_width / 2., DC->window_height / 2.,
+            ALLEGRO_ALIGN_CENTRE, "PRESS ENTER TO START");
+        al_draw_text(
+            FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+            DC->window_width / 2., DC->window_height / 2. + 40,
+            ALLEGRO_ALIGN_CENTRE, "ESC TO QUIT");
+    }
+    else if(state == STATE::UI) {
+		// ===== 選角 / 選關 =====
+		if(select_bg) {
+			al_draw_bitmap(select_bg, 0, 0, 0);
 		}
-		if(DC->ui && DC->ui->is_open()){
-			DC->ui->draw(); // 畫在最上層
-		}
-		if(DC->phone && DC->phone->is_open()){
-			DC->phone->draw();
-		}
+
+		al_draw_text(
+			FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
+			DC->window_width / 2., DC->window_height / 2. - 80,
+			ALLEGRO_ALIGN_CENTRE, "SELECT - PRESS ENTER TO PLAY");
+		al_draw_text(
+			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+			DC->window_width / 2., DC->window_height / 2. - 40,
+			ALLEGRO_ALIGN_CENTRE, "BACKSPACE TO MAIN MENU");
+
+		// ===== 音量滑桿 UI =====
+		float slider_x1 = DC->window_width * 0.2f;
+		float slider_x2 = DC->window_width * 0.8f;
+		float slider_y  = DC->window_height * 0.7f;
+
+		// 滑桿底條
+		al_draw_filled_rectangle(
+			slider_x1, slider_y - 4,
+			slider_x2, slider_y + 4,
+			al_map_rgb(180, 180, 180));
+
+		// 滑桿圓點位置
+		float knob_x = slider_x1 + bgm_volume * (slider_x2 - slider_x1);
+		al_draw_filled_circle(
+			knob_x, slider_y,
+			8.0f,
+			al_map_rgb(255, 255, 255));
+
+		// 顯示數字（0~100%）
+		int vol_percent = static_cast<int>(bgm_volume * 100.0f + 0.5f);
+		char buf[32];
+		std::snprintf(buf, sizeof(buf), "VOLUME: %d%%", vol_percent);
+
+		al_draw_text(
+			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
+			DC->window_width / 2., slider_y + 20,
+			ALLEGRO_ALIGN_CENTRE, buf);
 	}
-	switch(state) {
-		case STATE::START: {
-		} case STATE::LEVEL: {
-			break;
-		} case STATE::UI: {
-			break;
-		} case STATE::PAUSE: {
-			// game layout cover
-			al_draw_filled_rectangle(0, 0, DC->window_width, DC->window_height, al_map_rgba(50, 50, 50, 64));
-			al_draw_text(
-				FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255, 255, 255),
-				DC->window_width/2., DC->window_height/2.,
-				ALLEGRO_ALIGN_CENTRE, "GAME PAUSED");
-			break;
-		} case STATE::END: {
-		}
-	}
-	al_flip_display();
+    else { // LEVEL 或 PAUSE
+        // ===== 遊戲主畫面 =====
+        if(background) {
+            al_draw_bitmap(background, 0, 0, 0);
+        }
+        if(DC->game_field_length < DC->window_width)
+            al_draw_filled_rectangle(
+                DC->game_field_length, 0,
+                DC->window_width, DC->window_height,
+                al_map_rgb(100, 100, 100));
+
+        if(DC->game_field_length < DC->window_height)
+            al_draw_filled_rectangle(
+                0, DC->game_field_length,
+                DC->window_width, DC->window_height,
+                al_map_rgb(100, 100, 100));
+
+        // 遊戲物件
+        OC->draw();
+        DC->map->draw();
+        DC->hero->draw();
+        DC->starve_info->draw();
+        DC->coin_info->draw();
+
+        if(DC->ui && DC->ui->is_open()){
+            DC->ui->draw();
+        }
+        if(DC->phone && DC->phone->is_open()){
+            DC->phone->draw();
+        }
+
+        if(state == STATE::PAUSE) {
+            al_draw_filled_rectangle(
+                0, 0, DC->window_width, DC->window_height,
+                al_map_rgba(50, 50, 50, 64));
+            al_draw_text(
+                FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255, 255, 255),
+                DC->window_width/2., DC->window_height/2.,
+                ALLEGRO_ALIGN_CENTRE, "GAME PAUSED");
+        }
+    }
+
+    al_flip_display();
 }
 
 Game::~Game() {
