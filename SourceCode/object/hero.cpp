@@ -11,14 +11,36 @@ namespace HeroSetting{
     static constexpr char gif_postfix[][10] = {
         "left", "right", "front", "back"
     };
+    static constexpr char hero_name[][20] = {
+        "dragonite",
+        "chicken",
+        "cat"
+    };
+    static constexpr size_t HERO_TYPE_MAX = sizeof(hero_name) / sizeof(hero_name[0]);
 }
+void HERO::set_type(int type_index) {
+    if (type_index < 0) type_index = 0;
+    if (type_index >= (int)HeroSetting::HERO_TYPE_MAX)
+        type_index = (int)HeroSetting::HERO_TYPE_MAX - 1;
 
-void HERO::init(){
-    for(size_t type = 0; type < static_cast<size_t>(HeroState::HEROSTATE_MAX); type++){
-        char buffer[50];
-        sprintf(buffer, "%s/dragonite_%s.gif", HeroSetting::gif_root_path, HeroSetting::gif_postfix[static_cast<int>(type)]);
+    hero_type_index = type_index;
+}
+void HERO::init() {
+    using namespace HeroSetting;
+
+    // 根據當前 hero_type_index 決定 base name
+    const char* base = hero_name[hero_type_index];
+
+    for (size_t type = 0; type < static_cast<size_t>(HeroState::HEROSTATE_MAX); type++) {
+        char buffer[100];
+        // "./assets/gif/Hero/<base>_<direction>.gif"
+        sprintf(buffer, "%s/%s_%s.gif",
+                gif_root_path,
+                base,
+                gif_postfix[static_cast<int>(type)]);
         gifPath[static_cast<HeroState>(type)] = std::string{buffer};
     }
+
     GIFCenter *GIFC = GIFCenter::get_instance();
     ALGIF_ANIMATION *gif = GIFC->get(gifPath[State]);
     DataCenter *DC = DataCenter::get_instance();
@@ -29,6 +51,7 @@ void HERO::init(){
         DC->window_height / 2 + gif->height / 2
     });
 }
+
 
 void HERO::draw(){
     GIFCenter* GIFC = GIFCenter::get_instance();

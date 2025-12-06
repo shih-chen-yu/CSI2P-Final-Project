@@ -25,10 +25,11 @@ private:
 	 * @see Game::game_update()
 	 */
 	enum class STATE {
-		START, // -> LEVEL
-		LEVEL, // -> PAUSE, END
-		UI,
-		PAUSE, // -> LEVEL
+		START, // 主選單
+		HELP,  // 遊戲說明
+		UI,    // 選角 / 選關
+		LEVEL, // 遊戲主畫面
+		PAUSE,
 		END
 	};
 	STATE state;
@@ -46,6 +47,8 @@ private:
 	ALLEGRO_TIMER *timer;
 	ALLEGRO_EVENT_QUEUE *event_queue;
 	//UI *ui;
+	int selected_hero_index = 0;       // Select 畫面正在選的角色
+    static constexpr int HERO_TYPE_MAX = 3;  // 要跟 HeroSetting::HERO_TYPE_MAX 一致
 };
 
 #endif
