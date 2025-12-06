@@ -35,7 +35,7 @@ void Build::init(){
 
     // ★ 根據你的截圖，提示圖片應該是在 building 資料夾下
     // 原本是 "./assets/image/F.png" -> 改成下面這樣：
-    hint_picpath = "./assets/image/building/building_F.png";
+    hint_picpath = "./assets/image/F.png";
 
     ImageCenter* IC = ImageCenter::get_instance();
     ALLEGRO_BITMAP* pic = IC->get(main_picpath);

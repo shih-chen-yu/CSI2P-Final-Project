@@ -138,54 +138,6 @@ public:
 	 * @see phone
 	 */
 	Phone* phone;
-	/**
-	 * @brief 一隻可以移動碰到怪物會葛闢的英雄
-	 * @details 其實上面大部分都說明完畢了
-	 * @see Hero
-	 */
-	HERO *hero;
-
-	/**
-	 * @brief 隨機地圖建築
-	 * @details 其實上面大部分都說明完畢了
-	 * @see Build
-	 */
-	std::vector<Build*> build;
-
-	/**
-	 * @brief 畫面上會出現的UI
-	 * @details 其實上面大部分都說明完畢了
-	 * @see UI
-	 */
-	UI *ui;
-
-	/**
-	 * @brief 儲存所有建築的位置
-	 * @details 其實上面大部分都說明完畢了
-	 * @see Map
-	 */
-	Map *map;
-
-	/**
-	 * @brief 顯示飢餓值的那個長條
-	 * @details 其實上面大部分都說明完畢了
-	 * @see StarveInfo
-	 */
-	StarveInfo* starve_info;
-
-	/**
-	 * @brief 顯示剩餘存款的那個長條
-	 * @details 其實上面大部分都說明完畢了
-	 * @see CoinInfo
-	 */
-	CoinInfo* coin_info;
-
-	/**
-	 * @brief 手機的那個UI
-	 * @details 其實上面大部分都說明完畢了
-	 * @see phone
-	 */
-	Phone* phone;
 
 public:
 	Level *level;

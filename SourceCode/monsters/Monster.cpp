@@ -9,13 +9,8 @@
 #include "../shapes/Point.h"
 #include "../shapes/Rectangle.h"
 #include "../Utils.h"
-<<<<<<< HEAD
-//#include "../building/Building.h"
-#include "../object/Build.h"
-=======
 #include "../object/Build.h"          // ★ 用 Build*
 #include "../Build_object/Build_A.h"  // ★ 用 Build_A*
->>>>>>> d09afb7843400e0d790399a1d82f713f9a217fa7
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
 #include <cstdlib>
@@ -187,13 +182,6 @@ void Monster::update() {
         bitmap_switch_counter = bitmap_switch_freq;
     }
 
-<<<<<<< HEAD
-    // ===== 2. 找出所有「正在冒驚嘆號」的建築 =====
-    std::vector<Build*> alert_buildings;
-    for (Build *b : DC->build) {
-        if (b && b->is_alert()) {
-            alert_buildings.push_back(b);
-=======
     // ===== 2. 找出所有「有食物可以買」的 Build_A =====
     std::vector<Build_A*> food_buildings;
 
@@ -205,7 +193,6 @@ void Monster::update() {
 
         if (ba->get_stateA() == BuildStateA::Food) {
             food_buildings.push_back(ba);
->>>>>>> d09afb7843400e0d790399a1d82f713f9a217fa7
         }
     }
 
