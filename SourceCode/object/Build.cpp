@@ -14,26 +14,42 @@
 namespace Buildsetting{
     static constexpr char picfolder[50] = "./assets/image/building/";
 }
-
 void Build::init(){
     char buffer[100];
+    
+    // ★ 修正點：直接取得回傳值，不要加 .c_str()
+    const char* baseName = sprite_basename(); 
+
+    // ★ 防呆：如果讀到空字串（通常是因為 Level.txt 有空行），給個預設值以免當機
+    if(baseName == nullptr || strlen(baseName) == 0) {
+        printf("[Error] Empty basename detected in Build::init! Check Level.txt for empty lines.\n");
+        baseName = "building"; // 暫時給個預設檔名防止崩潰
+    }
+
     sprintf(buffer,
         "%s%s.png",
         Buildsetting::picfolder,
-        sprite_basename() // ★ 這行改成問小孩
+        baseName
     );
     main_picpath = std::string{buffer};
-    hint_picpath = "./assets/image/F.png";
+
+    // ★ 根據你的截圖，提示圖片應該是在 building 資料夾下
+    // 原本是 "./assets/image/F.png" -> 改成下面這樣：
+    hint_picpath = "./assets/image/building/building_F.png";
 
     ImageCenter* IC = ImageCenter::get_instance();
     ALLEGRO_BITMAP* pic = IC->get(main_picpath);
     
+    // 如果圖片讀取失敗，這裡會再崩潰一次，所以最好檢查一下 pic 是否為 NULL
+    if(!pic) {
+        printf("[Error] Failed to load image: %s\n", main_picpath.c_str());
+        return; // 或者做其他錯誤處理
+    }
+
     DataCenter* DC = DataCenter::get_instance();
     scale = 75.0 / al_get_bitmap_width(pic);
     hint_scale = 0.2;
 
-    // 用縮放後圖片大小，在螢幕正中央建立一個 Rectangle 當 hitbox
-    // Rectangle 會覆蓋「縮放後圖片」的範圍
     shape.reset(new Rectangle{
         DC->window_width / 2 - al_get_bitmap_width(pic) * scale / 2,
         DC->window_height / 2 - al_get_bitmap_height(pic) * scale / 2,

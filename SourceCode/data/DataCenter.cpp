@@ -3,17 +3,21 @@
 #include "../Level.h"
 #include "../Player.h"
 #include "../monsters/Monster.h"
-#include "../towers/Tower.h"
-#include "../towers/Bullet.h"   // 如果之後完全不用 Bullet，可以一起移掉
-#include "../Hero.h"
-#include "../building/Building.h"
+#include "../object/hero.h"
+#include "../object/Build.h"
+#include "../object/ui.h"
+#include "../object/Phone.h"
+#include "../Map.h"
+
+#include "../info/StarveInfo.h"
+#include "../info/CoinInfo.h"
 
 // fixed settings
 namespace DataSetting {
     constexpr double FPS = 60;
     constexpr int window_width = 800;
     constexpr int window_height = 600;
-    constexpr int game_field_length = 600;
+    constexpr int game_field_length = 800;
 }
 
 DataCenter::DataCenter() {
@@ -28,35 +32,27 @@ DataCenter::DataCenter() {
     memset(mouse_state, false, sizeof(mouse_state));
     memset(prev_mouse_state, false, sizeof(prev_mouse_state));
 
-    player   = new Player();
     level    = new Level();
-    hero     = new Hero();
+    hero = new HERO();
+	player = new Player();
+
+	ui = new UI();
+	map = new Map();
+	phone = new Phone();
+
+	starve_info = new StarveInfo();
+	coin_info = new CoinInfo();
     
 }
 
 DataCenter::~DataCenter() {
-    delete player;
-    delete level;
-    delete hero;
-
-    // 刪掉所有怪物
-    for (Monster *&m : monsters) {
-        delete m;
-    }
-
-    // 刪掉所有塔
-    for (Tower *&t : towers) {
-        delete t;
-    }
-
-    // 如果你已經不再使用 Bullet，可以把下面這段也移除，順便從 DataCenter.h 刪掉 towerBullets
-    for (Bullet *&tb : towerBullets) {
-        delete tb;
-    }
-
-    // 單一 building 指標，直接 delete 就好
-    for (Building *b : Buildings) {
-        delete b;
-    }
+    if(player) delete player;
+	if(hero) delete hero;
+	for(auto b : build) delete b;
+    if(ui) delete ui;
+    if(map) delete map;
+	if(phone) delete phone;
+	if(starve_info) delete starve_info;
+	if(coin_info) delete coin_info;
 
 }

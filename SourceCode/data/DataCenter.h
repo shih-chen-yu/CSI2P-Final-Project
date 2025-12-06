@@ -5,15 +5,21 @@
 #include <vector>
 #include <allegro5/keycodes.h>
 #include <allegro5/mouse.h>
-#include "../shapes/Point.h"
+#include "../shapes/Point.h" 
 
 class Player;
 class Level;
 class Monster;
-class Tower;
-class Bullet;
-class Hero;
-class Building;
+class HERO;
+class Build;
+
+class UI;
+class Map;
+class Phone;
+
+class StarveInfo;
+class CoinInfo;
+
 /**
  * @brief Stores generic global data and relatively small data structures.
  * @details The globally used data such as FPS (frames per second), windows size, game region, and states of input devices (mouse and keyboard).
@@ -73,6 +79,54 @@ public:
 	 * @see Player
 	 */
 	Player *player;
+
+	/**
+	 * @brief 一隻可以移動碰到怪物會葛闢的英雄
+	 * @details 其實上面大部分都說明完畢了
+	 * @see Hero
+	 */
+	HERO *hero;
+
+	/**
+	 * @brief 隨機地圖建築
+	 * @details 其實上面大部分都說明完畢了
+	 * @see Build
+	 */
+	std::vector<Build*> build;
+
+	/**
+	 * @brief 畫面上會出現的UI
+	 * @details 其實上面大部分都說明完畢了
+	 * @see UI
+	 */
+	UI *ui;
+
+	/**
+	 * @brief 儲存所有建築的位置
+	 * @details 其實上面大部分都說明完畢了
+	 * @see Map
+	 */
+	Map *map;
+	/**
+	 * @brief 顯示飢餓值的那個長條
+	 * @details 其實上面大部分都說明完畢了
+	 * @see StarveInfo
+	 */
+	StarveInfo* starve_info;
+
+	/**
+	 * @brief 顯示剩餘存款的那個長條
+	 * @details 其實上面大部分都說明完畢了
+	 * @see CoinInfo
+	 */
+	CoinInfo* coin_info;
+	
+	/**
+	 * @brief 手機的那個UI
+	 * @details 其實上面大部分都說明完畢了
+	 * @see phone
+	 */
+	Phone* phone;
 	/**
 	 * @brief Loads and stores the information of a level.
 	 * @see Level
@@ -83,18 +137,6 @@ public:
 	 * @see Monster
 	 */
 	std::vector<Monster*> monsters;
-	/**
-	 * @brief Raw list of Tower objects.
-	 * @see Tower
-	 */
-	std::vector<Tower*> towers;
-	/**
-	 * @brief Raw list of Bullet objects.
-	 * @see Bullet
-	 */
-	std::vector<Bullet*> towerBullets;
-	Hero *hero;
-	std::vector<Building*> Buildings;
 private:
 	DataCenter();
 };
