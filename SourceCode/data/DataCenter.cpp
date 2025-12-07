@@ -3,6 +3,7 @@
 
 #include "../Level.h"
 #include "../Player.h"
+#include "../LevelTimer.h"
 #include "../monsters/Monster.h"
 
 #include "../object/hero.h"
@@ -34,7 +35,8 @@ DataCenter::DataCenter() {
     memset(mouse_state, false, sizeof(mouse_state));
     memset(prev_mouse_state, false, sizeof(prev_mouse_state));
 
-    level    = new Level();
+    level = new Level();
+    leveltimer = new LevelTimer();
     hero = new HERO();
 	player = new Player();
 

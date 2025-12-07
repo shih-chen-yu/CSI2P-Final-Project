@@ -13,10 +13,10 @@
 #include <ctime>   // time
 
 namespace BuildASetting{
-    double bento_stamina = 20;
-    int bento_cost = 50;
-    double drink_stamina = 50;
-    int drink_cost = 80;
+    double bento_stamina = 50;
+    int bento_cost = 80;
+    double drink_stamina = 20;
+    int drink_cost = 50;
 }
 
 void Build_A::on_interact() {

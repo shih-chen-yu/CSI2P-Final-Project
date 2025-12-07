@@ -9,6 +9,7 @@
 
 class Player;
 class Level;
+class LevelTimer;
 
 class HERO;
 class Build;
@@ -90,6 +91,13 @@ public:
 	 * @see Player
 	 */
 	Player *player;
+
+	/**
+	 * @brief 設定遊戲現在進行到大幾
+	 * @details As title
+	 * @see LevelTimer
+	 */
+	LevelTimer* leveltimer;
 
 	/**
 	 * @brief 一隻可以移動碰到怪物會葛闢的英雄

@@ -1,19 +1,25 @@
 #include "Game.h"
 #include "Utils.h"
+
 #include "data/DataCenter.h"
 #include "data/OperationCenter.h"
 #include "data/SoundCenter.h"
 #include "data/ImageCenter.h"
 #include "data/FontCenter.h"
+
 #include "Player.h"
 #include "Level.h"
+#include "LevelTimer.h"
+#include "Map.h"
+
 #include "object/Build.h"
 #include "object/hero.h"
 #include "object/ui.h"
 #include "object/Phone.h"
+
 #include "info/StarveInfo.h"
 #include "info/CoinInfo.h"
-#include "Map.h"
+
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
@@ -153,6 +159,7 @@ Game::game_init() {
 
 	// init font setting
 	FC->init();
+
 	DC->ui->init();
 	DC->map->init();
 	DC->phone->init();
@@ -162,6 +169,7 @@ Game::game_init() {
    
 
 	DC->level->init();
+	DC->leveltimer->init();
 
 	// game start
 	background = IC->get(background_img_path);
@@ -221,6 +229,15 @@ Game::game_update() {
                 SC->set_volume(background, current_vol);
                 debug_log("Volume Down: %f\n", current_vol);
             }
+
+
+			// ⭐ 使用 DataCenter 裡的 LevelTimer
+			double dt = 1.0 / DC->FPS;
+			DC->leveltimer->update(dt);
+
+			int timer_level = DC->leveltimer->get_level();
+
+
 			
 			if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
 				SC->toggle_playing(background);
