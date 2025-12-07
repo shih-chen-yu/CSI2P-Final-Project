@@ -30,7 +30,7 @@ namespace {
     constexpr const char* HERO_PREVIEW_ROOT = "./assets/gif/Hero";
     constexpr const char* HERO_NAMES[] = {
         "dragonite",
-        "chicken",
+        "dog",
         "cat"
     };
     constexpr int HERO_TYPE_MAX = sizeof(HERO_NAMES) / sizeof(HERO_NAMES[0]);

@@ -13,7 +13,7 @@ namespace HeroSetting{
     };
     static constexpr char hero_name[][20] = {
         "dragonite",
-        "chicken",
+        "dog",
         "cat"
     };
     static constexpr size_t HERO_TYPE_MAX = sizeof(hero_name) / sizeof(hero_name[0]);
