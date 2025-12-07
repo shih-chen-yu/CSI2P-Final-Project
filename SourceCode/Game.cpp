@@ -67,6 +67,15 @@ Game::execute() {
 				break;
 			} case ALLEGRO_EVENT_KEY_DOWN: {
 				DC->key_state[event.keyboard.keycode] = true;
+
+				//處理各種全局的按鍵事件
+				switch (event.keyboard.keycode) {
+					case ALLEGRO_KEY_M:
+						if(state != STATE::START && state != STATE::PAUSE) DC->phone->toggle();
+						break;
+					default:
+						break;
+				}
 				break;
 			} case ALLEGRO_EVENT_KEY_UP: {
 				DC->key_state[event.keyboard.keycode] = false;
@@ -164,15 +173,16 @@ Game::game_init() {
 	DC->hero->init();
 	DC->starve_info->init();
 	DC->coin_info->init();
-	
+   	DC->level->init();
 	menu_bg   = IC->get(menu_img_path);
 	select_bg = IC->get(select_img_path);
 	background = IC->get(background_img_path); // 遊戲中用的背景
 
 	// BGM 初始設定
-    bgm_instance = nullptr;
-    bgm_volume = 0.4f;  // 預設 40%
-
+	bgm_instance = nullptr;
+	bgm_volume = 0.4f;  // 預設 40%
+	// game start
+	background = IC->get(background_img_path);
 	debug_log("Game state: change to START\n");
 	state = STATE::START;
 	al_start_timer(timer);
@@ -378,9 +388,9 @@ Game::game_draw() {
     OperationCenter *OC = OperationCenter::get_instance();
     FontCenter *FC = FontCenter::get_instance();
 
-    al_clear_to_color(al_map_rgb(100, 100, 100));
-
-    if(state == STATE::END) {
+	// Flush the screen first.
+	al_clear_to_color(al_map_rgb(100, 100, 100));
+	if(state == STATE::END) {
         al_flip_display();
         return;
     }
@@ -547,6 +557,7 @@ Game::game_draw() {
         OC->draw();
         DC->map->draw();
         DC->hero->draw();
+		DC->level->draw();
         DC->starve_info->draw();
         DC->coin_info->draw();
 

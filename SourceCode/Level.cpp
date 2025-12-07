@@ -59,7 +59,7 @@ Level::load_level(int lvl) {
 		fscanf(f, "%d", &num);
 		num_of_monsters.emplace_back(num);
 	}
-
+	/*
 	// read road path
 	while(fscanf(f, "%d", &num) != EOF) {
 		int w = num % grid_w;
@@ -69,7 +69,7 @@ Level::load_level(int lvl) {
 	debug_log("<Level> load level %d.\n", lvl);
 	fclose(f); // 記得關閉檔案
 
-    debug_log("<Level> load level %d.\n", lvl);
+    debug_log("<Level> load level %d.\n", lvl);*/
 
     // ==========================================
     // 修改處：在這裡直接生成 5 隻怪物
@@ -108,6 +108,7 @@ Level::update() {
 
 void
 Level::draw() {
+	/*
 	if(level == -1) return;
 	for(auto &[i, j] : road_path) {
 		int x1 = i * LevelSetting::grid_size[level];
@@ -115,9 +116,10 @@ Level::draw() {
 		int x2 = x1 + LevelSetting::grid_size[level];
 		int y2 = y1 + LevelSetting::grid_size[level];
 		al_draw_filled_rectangle(x1, y1, x2, y2, al_map_rgb(255, 244, 173));
-	}
+	}*/
 }
 
+/*
 bool
 Level::is_onroad(const Rectangle &region) {
 	for(const Point &grid : road_path) {
@@ -125,7 +127,8 @@ Level::is_onroad(const Rectangle &region) {
 			return true;
 	}
 	return false;
-}
+}*/
+
 
 Rectangle
 Level::grid_to_region(const Point &grid) const {

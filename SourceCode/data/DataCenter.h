@@ -9,6 +9,17 @@
 
 class Player;
 class Level;
+
+class HERO;
+class Build;
+
+class UI;
+class Map;
+class Phone;
+
+class StarveInfo;
+class CoinInfo;
+
 class Monster;
 class HERO;
 class Build;
@@ -127,10 +138,8 @@ public:
 	 * @see phone
 	 */
 	Phone* phone;
-	/**
-	 * @brief Loads and stores the information of a level.
-	 * @see Level
-	 */
+
+public:
 	Level *level;
 	/**
 	 * @brief Raw list of Monster objects.

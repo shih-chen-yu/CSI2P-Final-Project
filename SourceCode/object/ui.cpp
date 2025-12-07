@@ -105,7 +105,7 @@ void UI::draw(){
     ALLEGRO_DISPLAY *disp = al_get_current_display();
     float dw = (float)al_get_display_width(disp);
     float dh = (float)al_get_display_height(disp);
-
+    
     al_draw_filled_rectangle(
         0, 0, dw, dh,
         al_map_rgba(0, 0, 0, 120)

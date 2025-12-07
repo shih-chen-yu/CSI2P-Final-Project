@@ -4,6 +4,7 @@
 #include "../data/FontCenter.h"
 #include "../object/ui.h"
 #include "../object/hero.h"
+#include "../object/Phone.h"
 
 #include <allegro5/allegro_font.h>
 #include "../Utils.h"
@@ -181,6 +182,11 @@ void Build_A::child_update(){
             // 中獎後機率重設
             cur_prob = base_prob;
             StateA = BuildStateA::Food;
+            DC->phone->add_notification(
+                "1145141919810 WOW",
+                "可以來買午餐了",
+                "教院的人已經瘋狂從山上跑下來搶午餐了"
+            );
         } else {
             cur_prob += prob_step;
             if(cur_prob > max_prob) cur_prob = max_prob;

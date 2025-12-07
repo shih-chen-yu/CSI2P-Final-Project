@@ -1,8 +1,10 @@
 #include "DataCenter.h"
 #include <cstring>
+
 #include "../Level.h"
 #include "../Player.h"
 #include "../monsters/Monster.h"
+
 #include "../object/hero.h"
 #include "../object/Build.h"
 #include "../object/ui.h"
