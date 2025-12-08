@@ -162,19 +162,20 @@ void Monster::update() {
     double cx = shape->center_x();
     double cy = shape->center_y();
 
-    // ===== 1. 動畫 frame 切換 =====
-    int dir_idx = static_cast<int>(dir);
-
+    // 確保每個方向都有一個 vector
     if (bitmap_img_ids.size() < 4) {
         bitmap_img_ids.resize(4);
     }
 
-    auto &frames = bitmap_img_ids[dir_idx];
-    if (!frames.empty()) {
-        if (bitmap_switch_counter) {
+    // ===== 1. 動畫 frame 切換（用目前 dir）=====
+    int anim_dir_idx = static_cast<int>(dir);
+    auto &anim_frames = bitmap_img_ids[anim_dir_idx];
+
+    if (!anim_frames.empty()) {
+        if (bitmap_switch_counter > 0) {
             --bitmap_switch_counter;
         } else {
-            bitmap_img_id = (bitmap_img_id + 1) % static_cast<int>(frames.size());
+            bitmap_img_id = (bitmap_img_id + 1) % static_cast<int>(anim_frames.size());
             bitmap_switch_counter = bitmap_switch_freq;
         }
     } else {
@@ -185,7 +186,7 @@ void Monster::update() {
     // ===== 2. 找出所有「有食物可以買」的 Build_A =====
     std::vector<Build_A*> food_buildings;
 
-    for (Build *b : DC->build) {     // ★ 用 DataCenter::build
+    for (Build *b : DC->build) {
         if (!b) continue;
 
         Build_A* ba = dynamic_cast<Build_A*>(b);
@@ -209,7 +210,7 @@ void Monster::update() {
     if (!target_building) {
         if (!food_buildings.empty()) {
             int idx = std::rand() % static_cast<int>(food_buildings.size());
-            target_building = food_buildings[idx];      // Build* 成員，指向 Build_A 沒問題
+            target_building = food_buildings[idx];
             ai_state = AIState::GO_TO_BUILDING;
             chase_phase = 0;
         } else {
@@ -221,13 +222,12 @@ void Monster::update() {
     double step = static_cast<double>(v) * MONSTER_SPEED_SCALE / fps;
 
     if (ai_state == AIState::GO_TO_BUILDING && target_building) {
-        // 追建築：先對齊 X，再對齊 Y
-        Point target = target_building->center();  // ★ 需要 Build 有 center()
+        Point target = target_building->center();
 
         double dx = target.x - cx;
         double dy = target.y - cy;
 
-        const double eps = 1.0; // 認定「對齊」的誤差
+        const double eps = 1.0;
 
         if (chase_phase == 0) {
             // Phase 0：調整 X
@@ -236,7 +236,7 @@ void Monster::update() {
                 cx += (dx > 0 ? move : -move);
                 dir = convert_dir(Point{ (dx > 0 ? 1.0 : -1.0), 0.0 });
             } else {
-                chase_phase = 1; // X 對齊後→調整 Y
+                chase_phase = 1;
             }
         }
 
@@ -247,7 +247,7 @@ void Monster::update() {
                 cy += (dy > 0 ? move : -move);
                 dir = convert_dir(Point{ 0.0, (dy > 0 ? 1.0 : -1.0) });
             } else {
-                // X 和 Y 都差不多對齊 → 怪停在建築附近
+                // 到建築附近就停下來
             }
         }
     } else {
@@ -278,17 +278,21 @@ void Monster::update() {
     shape->update_center_x(cx);
     shape->update_center_y(cy);
 
-    // ===== 4. 更新 hit box & 圖片 frame id =====
+    // ===== 4. 根據「最新 dir」決定要畫哪個 frame =====
+    int dir_idx = static_cast<int>(dir);
     auto &frames2 = bitmap_img_ids[dir_idx];
+
     int frame_id = 0;
     if (!frames2.empty()) {
         if (bitmap_img_id < 0 || bitmap_img_id >= static_cast<int>(frames2.size())) {
             bitmap_img_id = 0;
         }
         frame_id = frames2[bitmap_img_id];
-    } else {
-        frame_id = 0;
     }
+
+    // 安全限制：你的圖只有 _0 ~ _3.png
+    if (frame_id < 0) frame_id = 0;
+    if (frame_id > 3) frame_id = 3;
 
     char buffer[128];
     std::snprintf(
@@ -298,33 +302,41 @@ void Monster::update() {
         frame_id);
 
     ALLEGRO_BITMAP *bitmap = IC->get(buffer);
-    const double &hc = shape->center_x();
-    const double &vc = shape->center_y();
-    const int h = al_get_bitmap_width(bitmap) * 0.8;
-    const int w = al_get_bitmap_height(bitmap) * 0.8;
-    shape.reset(new Rectangle{
-        (hc - w / 2.), (vc - h / 2.),
-        (hc - w / 2. + w), (vc - h / 2. + h)
-    });
+    if (bitmap) {
+        const double &hc = shape->center_x();
+        const double &vc = shape->center_y();
+        const int w = static_cast<int>(al_get_bitmap_width(bitmap)  * 0.8);
+        const int h = static_cast<int>(al_get_bitmap_height(bitmap) * 0.8);
+
+        shape.reset(new Rectangle{
+            (hc - w / 2.), (vc - h / 2.),
+            (hc - w / 2. + w), (vc - h / 2. + h)
+        });
+    }
 }
+
 
 void Monster::draw() {
     ImageCenter *IC = ImageCenter::get_instance();
 
-    int dir_idx = static_cast<int>(dir);
     if (bitmap_img_ids.size() < 4) {
         bitmap_img_ids.resize(4);
     }
+
+    int dir_idx = static_cast<int>(dir);
     auto &frames = bitmap_img_ids[dir_idx];
+
     int frame_id = 0;
     if (!frames.empty()) {
         if (bitmap_img_id < 0 || bitmap_img_id >= static_cast<int>(frames.size())) {
             bitmap_img_id = 0;
         }
         frame_id = frames[bitmap_img_id];
-    } else {
-        frame_id = 0;
     }
+
+    // 一樣限制 0~3，避免去讀 _4.png
+    if (frame_id < 0) frame_id = 0;
+    if (frame_id > 3) frame_id = 3;
 
     char buffer[128];
     std::snprintf(
@@ -334,6 +346,8 @@ void Monster::draw() {
         frame_id);
 
     ALLEGRO_BITMAP *bitmap = IC->get(buffer);
+    if (!bitmap) return;
+
     al_draw_bitmap(
         bitmap,
         shape->center_x() - al_get_bitmap_width(bitmap) / 2,

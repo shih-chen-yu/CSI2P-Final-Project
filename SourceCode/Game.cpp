@@ -473,13 +473,13 @@ Game::game_draw() {
         al_draw_text(
             FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
             cx, y,
-            ALLEGRO_ALIGN_CENTRE, "Goal: Survive and defeat all monsters");
+            ALLEGRO_ALIGN_CENTRE, "Compete with NPCs to snatch food from buildings");
         y += 30;
 
         al_draw_text(
             FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
             cx, y,
-            ALLEGRO_ALIGN_CENTRE, "Collect coins, build structures, avoid starvation");
+            ALLEGRO_ALIGN_CENTRE, "Collect coins, buy items, and avoid starvation");
         y += 40;
 
         al_draw_text(
