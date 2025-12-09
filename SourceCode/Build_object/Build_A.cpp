@@ -57,7 +57,7 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     x + padding,
                     y + padding + 40,
                     0,
-                    "-(1) Buy Drink：$50 Restore 20 stamina"
+                    "-(1) 花費 $50 買飲料，恢復 20 飽食度"
                 );
                 al_draw_text(
                     font,
@@ -65,10 +65,10 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     x + padding,
                     y + padding + 70,
                     0,
-                    "-(2) Buy Bento：$80 Restore 50 stamina"
+                    "-(2) 花費 $80 買便當，恢復 50 飽食度"
                 );
             }else{
-                const char* item_name = (pending_item == 1 ? "Drink" : "Bento");
+                const char* item_name = (pending_item == 1 ? "飲料" : "便當");
                 al_draw_text(
                     font,
                     al_map_rgb(255, 255, 0),
@@ -78,7 +78,7 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     "Confirm Purchase"
                 );
                 char buf[100];
-                sprintf(buf, "Buy %s? Press %d again to confirm, ESC to cancel.", item_name, pending_item);
+                sprintf(buf, "確定購買 %s?", item_name, pending_item);
                 al_draw_text(
                     font,
                     al_map_rgb(255, 255, 255),
@@ -86,6 +86,14 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     y + padding + 60,
                     0,
                     buf
+                );
+                al_draw_text(
+                    font,
+                    al_map_rgb(255, 255, 255),
+                    x + padding,
+                    y + padding + 90,
+                    0,
+                    "按下E確認，Q 取消"
                 );
             }
             break;
@@ -108,54 +116,60 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
 void Build_A::update_ui(UI* ui) {
     DataCenter* DC = DataCenter::get_instance();
 
-    if(StateA != BuildStateA::Food){
+    if (StateA != BuildStateA::Food) {
         // 沒食物時，UI 只能看，不能做事
         return;
     }
 
-    // 讀 key edge（你原本就有 key_state / prev_key_state）
+    // 讀 key edge
     bool key1_pressed = DC->key_state[ALLEGRO_KEY_1] && !DC->prev_key_state[ALLEGRO_KEY_1];
     bool key2_pressed = DC->key_state[ALLEGRO_KEY_2] && !DC->prev_key_state[ALLEGRO_KEY_2];
-    bool esc_pressed  = DC->key_state[ALLEGRO_KEY_ESCAPE] && !DC->prev_key_state[ALLEGRO_KEY_ESCAPE];
+    bool esc_pressed  = DC->key_state[ALLEGRO_KEY_Q] && !DC->prev_key_state[ALLEGRO_KEY_Q];
+    bool keyE_pressed = DC->key_state[ALLEGRO_KEY_E] && !DC->prev_key_state[ALLEGRO_KEY_E];
 
-    if(!in_confirm){
-        // 第一階段：選擇要買哪一項
-        if(key1_pressed){
+    if (!in_confirm) {
+        // ————————————————
+        // 第一階段：選擇買什麼
+        // ————————————————
+        if (key1_pressed) {
             in_confirm = true;
             pending_item = 1;
-            debug_log("Shop: choose Drink, go to confirm page.\n");
-        } else if(key2_pressed){
+            debug_log("Shop: choose Drink, go to confirm.\n");
+        }
+        else if (key2_pressed) {
             in_confirm = true;
             pending_item = 2;
-            debug_log("Shop: choose Bento, go to confirm page.\n");
+            debug_log("Shop: choose Bento, go to confirm.\n");
         }
-    } else {
-        // 第二階段：確認 or 取消
-        if(esc_pressed){
-            // 取消購買，回到菜單畫面
+    }
+    else {
+        // ————————————————
+        // 第二階段：確認 / 取消
+        // ————————————————
+        if (esc_pressed) {
+            // 取消 → 回到主菜單
             in_confirm = false;
             pending_item = 0;
             debug_log("Shop: cancel purchase.\n");
             return;
         }
 
-        // 再按一次同一個數字 → 確認購買
-        if(pending_item == 1 && key1_pressed){
-            debug_log("Shop: confirm buy Drink.\n");
-            DC->hero->add_stamina(BuildASetting::drink_stamina);
-            DC->hero->reduce_deposit(BuildASetting::drink_cost);
+        // ⭐ 按 E 確認購買（統一按鍵）
+        if (keyE_pressed) {
+            if (pending_item == 1) {
+                // Drink
+                debug_log("Shop: confirm buy Drink.\n");
+                DC->hero->add_stamina(BuildASetting::drink_stamina);
+                DC->hero->reduce_deposit(BuildASetting::drink_cost);
+            }
+            else if (pending_item == 2) {
+                // Bento
+                debug_log("Shop: confirm buy Bento.\n");
+                DC->hero->add_stamina(BuildASetting::bento_stamina);
+                DC->hero->reduce_deposit(BuildASetting::bento_cost);
+            }
 
-            // 買完這次後，食物賣完 → 回到 Nothing
-            StateA = BuildStateA::Nothing;
-            in_confirm = false;
-            pending_item = 0;
-
-            DC->ui->close();
-        } else if(pending_item == 2 && key2_pressed){
-            debug_log("Shop: confirm buy Bento.\n");
-            DC->hero->add_stamina(BuildASetting::bento_stamina);
-            DC->hero->reduce_deposit(BuildASetting::bento_cost);
-
+            // 結帳後商品售罄
             StateA = BuildStateA::Nothing;
             in_confirm = false;
             pending_item = 0;
@@ -183,8 +197,8 @@ void Build_A::child_update(){
             cur_prob = base_prob;
             StateA = BuildStateA::Food;
             DC->phone->add_notification(
-                "1145141919810 WOW",
-                "可以來買午餐了",
+                "小吃部",
+                "午餐已開始販售",
                 "教院的人已經瘋狂從山上跑下來搶午餐了"
             );
         } else {

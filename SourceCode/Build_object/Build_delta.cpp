@@ -206,7 +206,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
             x + padding,
             y + padding + 90,
             0,
-            "按下E確認，ESC 取消"
+            "按下E確認，Q 取消"
         );
     }
 
@@ -235,7 +235,7 @@ void Build_delta::update_ui(UI* ui) {
 
     bool key1_pressed = DC->key_state[ALLEGRO_KEY_1] && !DC->prev_key_state[ALLEGRO_KEY_1];
     bool key2_pressed = DC->key_state[ALLEGRO_KEY_2] && !DC->prev_key_state[ALLEGRO_KEY_2];
-    bool esc_pressed  = DC->key_state[ALLEGRO_KEY_ESCAPE] && !DC->prev_key_state[ALLEGRO_KEY_ESCAPE];
+    bool esc_pressed  = DC->key_state[ALLEGRO_KEY_Q] && !DC->prev_key_state[ALLEGRO_KEY_Q];
     bool keyE_pressed = DC->key_state[ALLEGRO_KEY_E] && !DC->prev_key_state[ALLEGRO_KEY_E];
 
 

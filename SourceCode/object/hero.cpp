@@ -67,6 +67,7 @@ void HERO::draw(){
 
 void HERO::update(){
     DataCenter* DC = DataCenter::get_instance();
+    if(starve > 100) starve = 100;
     if(!(DC->ui && DC->ui->is_open())){
         if(DC->key_state[ALLEGRO_KEY_W]){
             shape->update_center_y(shape->center_y() - speed);
