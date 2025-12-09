@@ -15,7 +15,7 @@ constexpr char love_img_path[] = "./assets/image/love.png";
 constexpr int love_img_padding = 5;
 
 // 檔案區域的靜態變數，不用改 ui.h
-static ALLEGRO_BITMAP *love = nullptr;
+// static ALLEGRO_BITMAP *love = nullptr;
 
 UI::UI()
     : open_flag(false), target_build(nullptr),
@@ -24,15 +24,11 @@ UI::UI()
 // 初始化：計算面板位置 + 載入愛心圖片
 void UI::init(){
     DataCenter* DC = DataCenter::get_instance();
-    ImageCenter *IC = ImageCenter::get_instance();
 
     w = DC->window_width * 0.75f;
     h = DC->window_height * 0.75f;
     x = (DC->window_width - w) / 2.0f;
     y = (DC->window_height - h) / 2.0f;
-
-    // 載入 HP 愛心圖
-    love = IC->get(love_img_path);
 }
 
 void UI::open(Build* target){
@@ -70,33 +66,6 @@ void UI::update(){
 }
 
 void UI::draw(){
-    DataCenter *DC = DataCenter::get_instance();
-    FontCenter *FC = FontCenter::get_instance();
-
-    // ========= 先畫「常駐 UI」：HP 愛心 + coin =========
-
-    const int &game_field_length = DC->game_field_length;
-    const int &player_HP = DC->player->HP;
-
-    if (love) {
-        int love_width = al_get_bitmap_width(love);
-        for(int i = 1; i <= player_HP; ++i) {
-            al_draw_bitmap(
-                love,
-                game_field_length - (love_width + love_img_padding) * i,
-                love_img_padding,
-                0
-            );
-        }
-    }
-
-    const int &player_coin = DC->player->coin;
-    al_draw_textf(
-        FC->courier_new[FontSize::MEDIUM], al_map_rgb(0, 0, 0),
-        game_field_length + love_img_padding, love_img_padding,
-        ALLEGRO_ALIGN_LEFT, "coin: %5d", player_coin
-    );
-
     // ========= 再畫「建築的互動視窗」（如果有打開） =========
 
     if(!open_flag) return;

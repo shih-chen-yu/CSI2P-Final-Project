@@ -1,16 +1,16 @@
-#ifndef COININFO_H_INCLUDED
-#define COININFO_H_INCLUDED
+#ifndef TIMEINFO_H_INCLUDED
+#define TIMEINFO_H_INCLUDED
 
-class CoinInfo {
+class TimeInfo {
 public:
-    CoinInfo();
+    TimeInfo();
     void init();
     void update(int data);
     void draw();
 private:
     float x,y,w,h; // bar rect
     float padding;
-    int coin;
+    int level;
 };
 
 #endif

@@ -35,7 +35,7 @@ void Build_A::on_interact() {
 void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
     FontCenter* FC = FontCenter::get_instance();
 
-    ALLEGRO_FONT* font = FC->caviar_dreams[FontSize::SMALL];
+    ALLEGRO_FONT* font = FC->NotoSansCJK[FontSize::SMALL];
 
     float padding = 20.0f;
 

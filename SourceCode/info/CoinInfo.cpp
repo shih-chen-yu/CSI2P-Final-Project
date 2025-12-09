@@ -6,7 +6,7 @@
 #include "CoinInfo.h"
 #include "../object/hero.h"
 
-CoinInfo::CoinInfo(): x(0),y(0),w(150),h(18),coin(114514),padding(12) {}
+CoinInfo::CoinInfo(): x(0),y(0),w(150),h(18),padding(12),coin(114514) {}
 
 void CoinInfo::init(){
     DataCenter* DC = DataCenter::get_instance();

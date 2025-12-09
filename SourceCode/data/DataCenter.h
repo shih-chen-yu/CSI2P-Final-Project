@@ -20,6 +20,7 @@ class Phone;
 
 class StarveInfo;
 class CoinInfo;
+class TimeInfo;
 
 class Monster;
 class HERO;
@@ -139,6 +140,13 @@ public:
 	 * @see CoinInfo
 	 */
 	CoinInfo* coin_info;
+
+	/**
+	 * @brief 顯示你現在大幾了
+	 * @details 其實上面大部分都說明完畢了
+	 * @see TimeInfo
+	 */
+	TimeInfo* time_info;
 	
 	/**
 	 * @brief 手機的那個UI

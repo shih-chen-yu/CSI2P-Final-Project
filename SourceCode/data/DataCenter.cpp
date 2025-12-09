@@ -14,6 +14,7 @@
 
 #include "../info/StarveInfo.h"
 #include "../info/CoinInfo.h"
+#include "../info/TimeInfo.h"
 
 // fixed settings
 namespace DataSetting {
@@ -46,7 +47,7 @@ DataCenter::DataCenter() {
 
 	starve_info = new StarveInfo();
 	coin_info = new CoinInfo();
-    
+    time_info = new TimeInfo();
 }
 
 DataCenter::~DataCenter() {
@@ -58,5 +59,5 @@ DataCenter::~DataCenter() {
 	if(phone) delete phone;
 	if(starve_info) delete starve_info;
 	if(coin_info) delete coin_info;
-
+    if(time_info) delete time_info;
 }

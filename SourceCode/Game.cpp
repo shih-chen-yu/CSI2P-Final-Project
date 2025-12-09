@@ -19,6 +19,7 @@
 
 #include "info/StarveInfo.h"
 #include "info/CoinInfo.h"
+#include "info/TimeInfo.h"
 
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
@@ -178,8 +179,10 @@ Game::game_init() {
 	DC->map->init();
 	DC->phone->init();
 	DC->hero->init();
+
 	DC->starve_info->init();
 	DC->coin_info->init();
+	DC->time_info->init();
 
 	menu_bg   = IC->get(menu_img_path);
 	select_bg = IC->get(select_img_path);
@@ -272,6 +275,7 @@ Game::game_update() {
 			DC->leveltimer->update(dt);
 
 			int timer_level = DC->leveltimer->get_level();
+			DC->time_info->update(timer_level); // 更新現在大幾的UI
 
             // P 暫停
             if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
@@ -405,6 +409,7 @@ Game::game_draw() {
 
 	// Flush the screen first.
 	al_clear_to_color(al_map_rgb(100, 100, 100));
+
 	/*
 	if(state != STATE::END) {
 		// background
@@ -430,6 +435,7 @@ Game::game_draw() {
 			DC->coin_info->draw();
 		}
 	}*/
+
 	if(state == STATE::END) {
         al_flip_display();
         return;
@@ -600,6 +606,7 @@ Game::game_draw() {
 		DC->level->draw();
         DC->starve_info->draw();
         DC->coin_info->draw();
+		DC->time_info->draw();
 
         if(DC->ui && DC->ui->is_open()){
             DC->ui->draw();
