@@ -379,6 +379,14 @@ Game::game_update() {
             OC->update();
 
             DC->hero->update();
+
+			// ⭐ 更新鏡頭（讓鏡頭盯著主角）
+			double hero_cx = DC->hero->shape->center_x();
+			double hero_cy = DC->hero->shape->center_y();
+			DC->camera_x = hero_cx - DC->window_width  / 2.0f;
+			DC->camera_y = hero_cy - DC->window_height / 2.0f;
+
+			//更新UI資訊
             DC->starve_info->update(DC->hero->get_starve());
             DC->coin_info->update(DC->hero->get_deposit());
 
@@ -409,32 +417,6 @@ Game::game_draw() {
 
 	// Flush the screen first.
 	al_clear_to_color(al_map_rgb(100, 100, 100));
-
-	/*
-	if(state != STATE::END) {
-		// background
-		al_draw_bitmap(background, 0, 0, 0);
-		if(DC->game_field_length < DC->window_width)
-			al_draw_filled_rectangle(
-				DC->game_field_length, 0,
-				DC->window_width, DC->window_height,
-				al_map_rgb(100, 100, 100));
-				
-		if(DC->game_field_length < DC->window_height)
-			al_draw_filled_rectangle(
-				0, DC->game_field_length,
-				DC->window_width, DC->window_height,
-				al_map_rgb(100, 100, 100));
-		// user interface
-		if(state != STATE::START) {
-			OC->draw();
-			DC->level->draw();
-			DC->map->draw();
-			DC->hero->draw();
-			DC->starve_info->draw();
-			DC->coin_info->draw();
-		}
-	}*/
 
 	if(state == STATE::END) {
         al_flip_display();
@@ -600,10 +582,21 @@ Game::game_draw() {
                 DC->window_width, DC->window_height,
                 al_map_rgb(100, 100, 100));
 
+				
+		// ====== 套用 camera transform（世界座標 → 螢幕）=======
+		ALLEGRO_TRANSFORM camera;
+		al_identity_transform(&camera);
+		al_translate_transform(&camera, -DC->camera_x, -DC->camera_y);
+		al_use_transform(&camera);
         OC->draw();
         DC->map->draw();
         DC->hero->draw();
 		DC->level->draw();
+
+		// ====== 重設 transform，之後畫 UI（固定在螢幕）=======
+		ALLEGRO_TRANSFORM identity;
+		al_identity_transform(&identity);
+		al_use_transform(&identity);
         DC->starve_info->draw();
         DC->coin_info->draw();
 		DC->time_info->draw();

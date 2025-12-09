@@ -50,6 +50,7 @@ public:
 public:
 	double FPS;
 	int window_width, window_height;
+	double camera_x, camera_y;
 	/**
 	 * @brief The width and height of game area (not window size). That is, the region excludes menu region.
 	 * @details The game area is sticked to the top-left of the display window.

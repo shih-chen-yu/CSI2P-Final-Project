@@ -29,6 +29,8 @@ DataCenter::DataCenter() {
     this->window_width = DataSetting::window_width;
     this->window_height = DataSetting::window_height;
     this->game_field_length = DataSetting::game_field_length;
+    this->camera_x = 0.0;
+    this->camera_y = 0.0;
 
     memset(key_state, false, sizeof(key_state));
     memset(prev_key_state, false, sizeof(prev_key_state));
