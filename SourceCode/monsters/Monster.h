@@ -11,62 +11,42 @@
 
 enum class Dir;
 
-// fixed settings
+// ===== 怪物種類 =====
 enum class MonsterType {
-    WOLF, CAVEMAN, WOLFKNIGHT, DEMONNIJIA, MONSTERTYPE_MAX
+    WOLF,
+    CAVEMAN,
+    WOLFKNIGHT,
+    DEMONNIJIA,
+    MONSTERTYPE_MAX
+};
+
+// ===== 怪物 AI 狀態：亂走 / 去建築物搶學餐 =====
+enum class AIState {
+    WANDER,         // 隨機亂走
+    GO_TO_BUILDING  // 朝有食物的建築物前進
 };
 
 /**
- * @brief The class of a monster (enemies).
+ * @brief The class of a monster (enemies / NPC 學餐搶手).
  * @details Monster inherits Object and takes Rectangle as its hit box.
  */
 class Monster : public Object
 {
 public:
+    // 建立對應 type 的 monster 實例
     static Monster *create_monster(MonsterType type, const std::vector<Point> &path);
 
 public:
     // path 只拿來決定初始位置，不再用來當完整行走路徑
     Monster(const std::vector<Point> &path, MonsterType type);
 
-    void update();
-    void draw();
+    void update();          // ★ 這裡不要 override，因為 Object 沒有 virtual update()
+    void draw() override;   // draw 有在 Object 宣告成 virtual，所以可以 override
 
     const int &get_money() const { return money; }
     int HP;
 
-    // 原本回傳 path 的介面現在不再需要，可以移除或保留空實作
-    // const std::queue<Point> &get_path() const { return path; }
-
 protected:
-    /**
-     * @var HP
-     * @brief Health point of a monster.
-     **
-     * @var v
-     * @brief Moving speed of a monster (pixels per second).
-     **
-     * @var money
-     * @brief The amount of money that player will earn when the monster is killed.
-     **
-     * @var bitmap_img_ids
-     * @brief The first vector is the Dir index, and the second vector is image id.
-     * @details `bitmap_img_ids[Dir][<ordered_id>]`
-     **
-     * @var bitmap_switch_counter
-     * @brief Counting down for bitmap_switch_freq.
-     * @see Monster::bitmap_switch_freq
-     **
-     * @var bitmap_switch_freq
-     * @brief Number of frames required to change to the next move pose for the current facing direction.
-     * @details The variable is left for child classes to define.
-     * 
-     * @var bitmap_img_id
-     * @brief Move pose of the current facing direction.
-     **
-     * @var dir
-     * @brief Current facing direction.
-     */
     int v;
     int money;
     std::vector<std::vector<int>> bitmap_img_ids;
@@ -75,16 +55,10 @@ protected:
     int bitmap_img_id;
 
 private:
-    // === AI 狀態：亂走 / 去建築物 ===
-    enum class AIState {
-        WANDER,         // 隨機亂走
-        GO_TO_BUILDING  // 朝有驚嘆號的建築物前進
-    };
-
     MonsterType type;
     Dir dir;
 
-    // 亂走 & 追建築物用的狀態
+    // === AI 狀態：亂走 / 去建築物 ===
     AIState ai_state = AIState::WANDER;
 
     // 目前移動速度向量（像素／秒）
@@ -94,8 +68,8 @@ private:
     // 亂走模式下，還要持續目前方向多久（秒）
     double wander_timer = 0.0;
 
-    // 目前鎖定要去的建築物（如果有）
-    Build  *target_building = nullptr;
+    // 目前鎖定要去搶的建築物（有食物的 Build_A）
+    Build_A *target_building = nullptr;
 
     // 追建築物分兩階段：0 = 先走 X, 1 = 再走 Y
     int chase_phase = 0;

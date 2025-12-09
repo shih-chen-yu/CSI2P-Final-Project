@@ -9,8 +9,8 @@
 #include "../shapes/Point.h"
 #include "../shapes/Rectangle.h"
 #include "../Utils.h"
-#include "../object/Build.h"          // ★ 用 Build*
-#include "../Build_object/Build_A.h"  // ★ 用 Build_A*
+#include "../object/Build.h"          // Build*
+#include "../Build_object/Build_A.h"  // Build_A*
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
 #include <cstdlib>
@@ -19,6 +19,7 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
 constexpr double MONSTER_SPEED_SCALE = 0.5; // 比原本慢 50%，想更慢就再調小
 using namespace std;
 
@@ -86,23 +87,23 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
     bitmap_switch_counter = 0;
     bitmap_switch_freq = 10;   // 預設值，子類可以覆蓋
 
-    // === 修改開始：更大幅度的分散 ===
+    // === 出生位置：從 path 前幾個點挑一個，再加一點隨機偏移 ===
     if(!path.empty()) {
-        int range = 6; 
-        if(path.size() < 6) range = path.size(); 
-        
+        int range = 6;
+        if(static_cast<int>(path.size()) < range) range = static_cast<int>(path.size());
+
         int random_index = rand() % range;
-        const Point &grid = path[random_index]; 
-        
+        const Point &grid = path[random_index];
+
         const Rectangle &region = DC->level->grid_to_region(grid);
 
         int pixel_offset_x = (rand() % 30) - 15;
         int pixel_offset_y = (rand() % 30) - 15;
 
         shape.reset(new Rectangle{
-            region.center_x() + pixel_offset_x, 
+            region.center_x() + pixel_offset_x,
             region.center_y() + pixel_offset_y,
-            region.center_x() + pixel_offset_x, 
+            region.center_x() + pixel_offset_x,
             region.center_y() + pixel_offset_y
         });
     }
@@ -110,9 +111,9 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
     // AI 狀態初始化
     ai_state = AIState::WANDER;
     vx = vy = 0.0;
-    wander_timer = 0.0;
-    target_building = nullptr;   // ★ 注意：Monster.h 裡請用 Build* target_building;
-    chase_phase = 0;
+    wander_timer   = 0.0;
+    target_building = nullptr;   // ★ 現在是 Build_A*
+    chase_phase    = 0;
 }
 
 /**
@@ -150,7 +151,7 @@ void Monster::choose_random_direction() {
  * @details
  * 1. 處理動畫 frame 切換（有做防呆，避免 frame index 爆掉）
  * 2. 判斷是否有任一 Build_A 有食物：
- *    - 有：GO_TO_BUILDING，往那棟建築 center 移動
+ *    - 有：GO_TO_BUILDING，往那棟建築 center 移動（每棟最多一隻 NPC 盯）
  *    - 沒：WANDER，隨機亂走，碰邊界反彈
  * 3. 更新 hit box 大小
  */
@@ -183,7 +184,7 @@ void Monster::update() {
         bitmap_switch_counter = bitmap_switch_freq;
     }
 
-    // ===== 2. 找出所有「有食物可以買」的 Build_A =====
+    // ===== 2. 找出所有「有食物，而且還沒被 NPC 盯上」的 Build_A =====
     std::vector<Build_A*> food_buildings;
 
     for (Build *b : DC->build) {
@@ -192,25 +193,32 @@ void Monster::update() {
         Build_A* ba = dynamic_cast<Build_A*>(b);
         if (!ba) continue;
 
-        if (ba->get_stateA() == BuildStateA::Food) {
+        if (ba->has_food() && !ba->is_targeted()) {
             food_buildings.push_back(ba);
         }
     }
 
-    // ===== 2-1. 根據食物建築決定目標 =====
+    // ===== 2-1. 檢查自己原本的目標建築還 OK 嗎 =====
     if (target_building) {
-        Build_A* ba = dynamic_cast<Build_A*>(target_building);
-        if (ba && ba->get_stateA() == BuildStateA::Food) {
+        if (target_building->has_food()) {
             ai_state = AIState::GO_TO_BUILDING;
         } else {
+            // 食物沒了，這棟不需要被盯
+            target_building->set_targeted(false);
             target_building = nullptr;
+            ai_state = AIState::WANDER;
         }
     }
 
+    // ===== 2-2. 如果現在沒有目標，試著分配一個新目標 =====
     if (!target_building) {
         if (!food_buildings.empty()) {
             int idx = std::rand() % static_cast<int>(food_buildings.size());
             target_building = food_buildings[idx];
+
+            // 標記：這棟建築物已經有 NPC 在搶
+            target_building->set_targeted(true);
+
             ai_state = AIState::GO_TO_BUILDING;
             chase_phase = 0;
         } else {
@@ -222,6 +230,7 @@ void Monster::update() {
     double step = static_cast<double>(v) * MONSTER_SPEED_SCALE / fps;
 
     if (ai_state == AIState::GO_TO_BUILDING && target_building) {
+        // === 正在去搶學餐 ===
         Point target = target_building->center();
 
         double dx = target.x - cx;
@@ -247,7 +256,15 @@ void Monster::update() {
                 cy += (dy > 0 ? move : -move);
                 dir = convert_dir(Point{ 0.0, (dy > 0 ? 1.0 : -1.0) });
             } else {
-                // 到建築附近就停下來
+                // ===== 抵達建築物中心：搶飯！ =====
+                bool got_food = target_building->take_food(1);
+                (void)got_food; // 目前暫時沒用到，可之後拿來加效果
+
+                // 不管這棟還有沒有剩，先放生，讓別的 NPC 也有機會搶
+                target_building->set_targeted(false);
+                target_building = nullptr;
+                ai_state = AIState::WANDER;
+                chase_phase = 0;
             }
         }
     } else {
@@ -314,7 +331,6 @@ void Monster::update() {
         });
     }
 }
-
 
 void Monster::draw() {
     ImageCenter *IC = ImageCenter::get_instance();

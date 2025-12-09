@@ -19,7 +19,6 @@
 
 #include "info/StarveInfo.h"
 #include "info/CoinInfo.h"
-#include "info/TimeInfo.h"
 
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
@@ -42,40 +41,32 @@ namespace {
     };
     constexpr int HERO_TYPE_MAX = sizeof(HERO_NAMES) / sizeof(HERO_NAMES[0]);
 }
-// fixed settings
+
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
 constexpr char game_start_sound_path[] = "./assets/sound/growl.wav";
-constexpr char menu_img_path[]           = "./assets/image/MenuBackground.png";    // 主選單
-constexpr char select_img_path[]         = "./assets/image/SelectBackground.png";  // 選角/選關
+constexpr char menu_img_path[]           = "./assets/image/MenuBackground.png";
+constexpr char select_img_path[]         = "./assets/image/SelectBackground.png";
 constexpr char background_img_path[] = "./assets/image/StartBackground.jpg";
 constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
 
-/**
- * @brief Game entry.
- * @details The function processes all allegro events and update the event state to a generic data storage (i.e. DataCenter).
- * For timer event, the game_update and game_draw function will be called if and only if the current is timer.
- */
 void
 Game::execute() {
 	DataCenter *DC = DataCenter::get_instance();
 	std::srand((unsigned)std::time(nullptr));
-	// main game loop
 	bool run = true;
 	while(run) {
-		// process all events here
 		al_wait_for_event(event_queue, &event);
 		switch(event.type) {
 			case ALLEGRO_EVENT_TIMER: {
 				run &= game_update();
 				game_draw();
 				break;
-			} case ALLEGRO_EVENT_DISPLAY_CLOSE: { // stop game
+			} case ALLEGRO_EVENT_DISPLAY_CLOSE: {
 				run = false;
 				break;
 			} case ALLEGRO_EVENT_KEY_DOWN: {
 				DC->key_state[event.keyboard.keycode] = true;
 
-				//處理各種全局的按鍵事件
 				switch (event.keyboard.keycode) {
 					case ALLEGRO_KEY_M:
 						if(state != STATE::START && state != STATE::PAUSE) DC->phone->toggle();
@@ -102,15 +93,10 @@ Game::execute() {
 	}
 }
 
-/**
- * @brief Initialize all allegro addons and the game body.
- * @details Only one timer is created since a game and all its data should be processed synchronously.
- */
 Game::Game(bool testMode) {
 	DataCenter *DC = DataCenter::get_instance();
 	GAME_ASSERT(al_init(), "failed to initialize allegro.");
 
-	// initialize allegro addons
 	bool addon_init = true;
 	addon_init &= al_init_primitives_addon();
 	addon_init &= al_init_font_addon();
@@ -127,14 +113,12 @@ Game::Game(bool testMode) {
 		return;
 	}
 
-	// initialize events
 	bool event_init = true;
 	event_init &= al_install_keyboard();
 	event_init &= al_install_mouse();
 	event_init &= al_install_audio();
 	GAME_ASSERT(event_init, "failed to initialize allegro events.");
 
-	// initialize game body
 	GAME_ASSERT(
 		timer = al_create_timer(1.0 / DC->FPS),
 		"failed to create timer.");
@@ -149,62 +133,47 @@ Game::Game(bool testMode) {
 	game_init();
 }
 
-/**
- * @brief Initialize all auxiliary resources.
- */
 void
 Game::game_init() {
 	DataCenter *DC = DataCenter::get_instance();
 	SoundCenter *SC = SoundCenter::get_instance();
 	ImageCenter *IC = ImageCenter::get_instance();
 	FontCenter *FC = FontCenter::get_instance();
-	// set window icon
+
 	game_icon = IC->get(game_icon_img_path);
 	al_set_display_icon(display, game_icon);
 
 	selected_hero_index = 0;
-	// register events to event_queue
+
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_mouse_event_source());
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
 
-	// init sound setting
 	SC->init();
-
-	// init font setting
 	FC->init();
 
 	DC->ui->init();
 	DC->map->init();
 	DC->phone->init();
 	DC->hero->init();
-
 	DC->starve_info->init();
 	DC->coin_info->init();
-	DC->time_info->init();
 
 	menu_bg   = IC->get(menu_img_path);
 	select_bg = IC->get(select_img_path);
-	background = IC->get(background_img_path); // 遊戲中用的背景
+	background = IC->get(background_img_path);
 
 	DC->level->init();
 	DC->leveltimer->init();
 
-	// BGM 初始設定
 	bgm_instance = nullptr;
-	bgm_volume = 0.4f;  // 預設 40%
+	bgm_volume = 0.4f;
 	debug_log("Game state: change to START\n");
 	state = STATE::START;
 	al_start_timer(timer);
 }
 
-/**
- * @brief The function processes all data update.
- * @details The behavior of the whole game body is determined by its state.
- * @return Whether the game should keep running (true) or reaches the termination criteria (false).
- * @see Game::STATE
- */
 bool
 Game::game_update() {
     DataCenter *DC = DataCenter::get_instance();
@@ -213,7 +182,6 @@ Game::game_update() {
     
 
     switch(state) {
-        // ===== 主選單 =====
         case STATE::START: {
             static bool is_played = false;
             if(!is_played) {
@@ -221,41 +189,33 @@ Game::game_update() {
                 is_played = true;
             }
 
-            // 按 ENTER → 先進入遊戲說明畫面
 			if(DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
 				debug_log("<Game> state: change to HELP\n");
 				state = STATE::HELP;
 			}
 
-            // ESC 直接結束遊戲
             if(DC->key_state[ALLEGRO_KEY_ESCAPE] && !DC->prev_key_state[ALLEGRO_KEY_ESCAPE]) {
                 return false;
             }
             break;
         }
-		// ===== 遊戲說明畫面 =====
 		case STATE::HELP: {
-			// ENTER → 進入選角 / 選關畫面
 			if(DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
 				debug_log("<Game> state: change to UI (Select)\n");
 				state = STATE::UI;
 			}
 
-			// BACKSPACE → 回主選單
 			if(DC->key_state[ALLEGRO_KEY_BACKSPACE] && !DC->prev_key_state[ALLEGRO_KEY_BACKSPACE]) {
 				debug_log("<Game> state: back to START\n");
 				state = STATE::START;
 			}
 			break;
 		}
-        // ===== 遊戲主畫面 =====
         case STATE::LEVEL: {
-            // 如果前面還沒開始 BGM（例如直接跳 LEVEL），這裡補播
             if(!bgm_instance) {
                 bgm_instance = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP, bgm_volume);
             }
 
-            // 用 + / - 微調音量（跟之前邏輯一樣，但改成用 bgm_volume）
             if(DC->key_state[ALLEGRO_KEY_EQUALS] && !DC->prev_key_state[ALLEGRO_KEY_EQUALS]) {
                 bgm_volume += 0.05f;
                 if(bgm_volume > 1.0f) bgm_volume = 1.0f;
@@ -269,22 +229,17 @@ Game::game_update() {
                 debug_log("Volume Down: %f\n", bgm_volume);
             }
 
-
-			// ⭐ 使用 DataCenter 裡的 LevelTimer
 			double dt = 1.0 / DC->FPS;
 			DC->leveltimer->update(dt);
 
 			int timer_level = DC->leveltimer->get_level();
-			DC->time_info->update(timer_level); // 更新現在大幾的UI
 
-            // P 暫停
             if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
                 if(bgm_instance) SC->toggle_playing(bgm_instance);
                 debug_log("<Game> state: change to PAUSE\n");
                 state = STATE::PAUSE;
             }
 
-            // 過關 / 失敗條件
             if(DC->level->remain_monsters() == 0 && DC->monsters.size() == 0) {
                 debug_log("<Game> state: change to END\n");
                 state = STATE::END;
@@ -296,14 +251,11 @@ Game::game_update() {
             break;
         }
 
-        // ===== 選角 / 選關畫面 =====
         case STATE::UI: {
-			// 在選角畫面就開始播 BGM，讓玩家可以試聽音量
 			if(!bgm_instance) {
 				bgm_instance = SC->play(background_sound_path, ALLEGRO_PLAYMODE_LOOP, bgm_volume);
 			}
 
-			// ===== 角色選擇：用 A / D 切換 =====
 			if(DC->key_state[ALLEGRO_KEY_A] && !DC->prev_key_state[ALLEGRO_KEY_A]) {
 				selected_hero_index--;
 				if(selected_hero_index < 0)
@@ -315,13 +267,11 @@ Game::game_update() {
 					selected_hero_index = 0;
 			}
 
-			// ===== 音量滑桿（原本就有） =====
 			float slider_x1 = DC->window_width * 0.2f;
 			float slider_x2 = DC->window_width * 0.8f;
 			float slider_y  = DC->window_height * 0.7f;
-			// 左右鍵調音量略
-			// 滑鼠拖曳調音量（左鍵）
-			if(DC->mouse_state[1]) { // 1 = 左鍵
+
+			if(DC->mouse_state[1]) {
 				int mx = DC->mouse.x;
 				int my = DC->mouse.y;
 				if(mx >= slider_x1 && mx <= slider_x2 &&
@@ -334,26 +284,21 @@ Game::game_update() {
 					if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
 				}
 			}
-			// ENTER → 開始第 1 關，沿用目前的 bgm_volume & 角色外觀
 			if(DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
-
-				// ⭐ 把選到的 hero type 告訴 HERO，再 init / 或 load_level 裡會重新 init
 				DC->hero->set_type(selected_hero_index);
-				DC->hero->init();   // 如果 load_level 內會再 init，可以視需求加或拿掉
+				DC->hero->init();
 
 				DC->level->load_level(1);
 				debug_log("<Game> state: change to LEVEL (GameScene)\n");
 				state = STATE::LEVEL;
 			}
 
-			// BACKSPACE 回到主選單
 			if(DC->key_state[ALLEGRO_KEY_BACKSPACE] && !DC->prev_key_state[ALLEGRO_KEY_BACKSPACE]) {
 				debug_log("<Game> state: back to START\n");
 				state = STATE::START;
 			}
 			break;
 		}
-        // ===== 暫停 =====
         case STATE::PAUSE: {
             if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
                 SC->toggle_playing(bgm_instance);
@@ -363,30 +308,28 @@ Game::game_update() {
             break;
         }
 
-        // ===== 結束 =====
         case STATE::END: {
+        if (DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
             return false;
         }
+        break;
+    }
     }
 
-    // ====== 下面是「遊戲內物件的更新」 ======
     if(state != STATE::PAUSE) {
         DC->player->update();
         SC->update();
 
-        // 真正的遊戲邏輯只在 LEVEL 時進行
         if(state == STATE::LEVEL) {
             OC->update();
 
             DC->hero->update();
 
-			// ⭐ 更新鏡頭（讓鏡頭盯著主角）
-			double hero_cx = DC->hero->shape->center_x();
-			double hero_cy = DC->hero->shape->center_y();
-			DC->camera_x = hero_cx - DC->window_width  / 2.0f;
-			DC->camera_y = hero_cy - DC->window_height / 2.0f;
+            double hero_cx = DC->hero->shape->center_x();
+            double hero_cy = DC->hero->shape->center_y();
+            DC->camera_x = hero_cx - DC->window_width  / 2.0f;
+            DC->camera_y = hero_cy - DC->window_height / 2.0f;
 
-			//更新UI資訊
             DC->starve_info->update(DC->hero->get_starve());
             DC->coin_info->update(DC->hero->get_deposit());
 
@@ -406,25 +349,39 @@ Game::game_update() {
     return true;
 }
 
-/**
- * @brief Draw the whole game and objects.
- */
 void
 Game::game_draw() {
     DataCenter *DC = DataCenter::get_instance();
     OperationCenter *OC = OperationCenter::get_instance();
     FontCenter *FC = FontCenter::get_instance();
 
-	// Flush the screen first.
 	al_clear_to_color(al_map_rgb(100, 100, 100));
 
 	if(state == STATE::END) {
+        if (background) {
+            al_draw_bitmap(background, 0, 0, 0);
+        } else {
+            al_clear_to_color(al_map_rgb(0, 0, 0));
+        }
+
+        float cx = DC->window_width  / 2.f;
+        float cy = DC->window_height / 2.f;
+
+        al_draw_text(
+            FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255, 255, 255),
+            cx, cy - 40,
+            ALLEGRO_ALIGN_CENTRE, "GAME OVER");
+
+        al_draw_text(
+            FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200, 200, 200),
+            cx, cy + 10,
+            ALLEGRO_ALIGN_CENTRE, "Press ENTER to exit");
+
         al_flip_display();
         return;
     }
 
     if(state == STATE::START) {
-        // ===== 主選單 =====
         if(menu_bg) {
             al_draw_bitmap(menu_bg, 0, 0, 0);
         }
@@ -438,7 +395,6 @@ Game::game_draw() {
             ALLEGRO_ALIGN_CENTRE, "ESC TO QUIT");
     }
     else if(state == STATE::HELP) {
-        // ===== Help Scene =====
         if(menu_bg) {
             al_draw_bitmap(menu_bg, 0, 0, 0);
         }
@@ -482,7 +438,6 @@ Game::game_draw() {
             ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
     }
     else if(state == STATE::UI) {
-		// ===== Select / 選角選關畫面 =====
 		if(select_bg) {
 			al_draw_bitmap(select_bg, 0, 0, 0);
 		}
@@ -496,7 +451,6 @@ Game::game_draw() {
 			ALLEGRO_ALIGN_CENTRE, "SELECT YOUR HERO");
 		cy += 40;
 
-		// ===== ⭐ Hero 預覽區域 ⭐ =====
 		{
 			int idx = selected_hero_index;
 			if(idx < 0) idx = 0;
@@ -517,7 +471,6 @@ Game::game_draw() {
 				algif_draw_gif(gif, hero_x, hero_y, 0);
 				cy += gif->height + 20;
 
-				// 顯示角色名稱
 				al_draw_text(
 					FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,0),
 					cx, cy,
@@ -526,7 +479,6 @@ Game::game_draw() {
 			}
 		}
 
-		// 操作提示
 		al_draw_text(
 			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
 			cx, cy,
@@ -539,7 +491,6 @@ Game::game_draw() {
 			ALLEGRO_ALIGN_CENTRE, "ENTER : start game");
 		cy += 25;
 
-		// ===== 音量滑桿（你原本的那一段） =====
 		float slider_x1 = DC->window_width * 0.2f;
 		float slider_x2 = DC->window_width * 0.8f;
 		float slider_y  = DC->window_height * 0.7f;
@@ -564,9 +515,7 @@ Game::game_draw() {
 			cx, DC->window_height * 0.85f,
 			ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
 	}
-
     else { 
-        // ===== LEVEL 或 PAUSE =====
         if(background) {
             al_draw_bitmap(background, 0, 0, 0);
         }
@@ -582,24 +531,22 @@ Game::game_draw() {
                 DC->window_width, DC->window_height,
                 al_map_rgb(100, 100, 100));
 
-				
-		// ====== 套用 camera transform（世界座標 → 螢幕）=======
-		ALLEGRO_TRANSFORM camera;
-		al_identity_transform(&camera);
-		al_translate_transform(&camera, -DC->camera_x, -DC->camera_y);
-		al_use_transform(&camera);
+        ALLEGRO_TRANSFORM camera;
+        al_identity_transform(&camera);
+        al_translate_transform(&camera, -DC->camera_x, -DC->camera_y);
+        al_use_transform(&camera);
+
         OC->draw();
         DC->map->draw();
         DC->hero->draw();
 		DC->level->draw();
 
-		// ====== 重設 transform，之後畫 UI（固定在螢幕）=======
-		ALLEGRO_TRANSFORM identity;
-		al_identity_transform(&identity);
-		al_use_transform(&identity);
+        ALLEGRO_TRANSFORM identity;
+        al_identity_transform(&identity);
+        al_use_transform(&identity);
+
         DC->starve_info->draw();
         DC->coin_info->draw();
-		DC->time_info->draw();
 
         if(DC->ui && DC->ui->is_open()){
             DC->ui->draw();
@@ -621,8 +568,6 @@ Game::game_draw() {
 
     al_flip_display();
 }
-
-
 
 Game::~Game() {
 	if(display) al_destroy_display(display);
