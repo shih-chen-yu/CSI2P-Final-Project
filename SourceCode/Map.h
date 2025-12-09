@@ -7,10 +7,12 @@
 #include "object/Build.h"
 
 #include "Build_object/Build_A.h"
+#include "Build_object/Build_delta.h"
 
 enum class BuildKind {
     Normal,   // 原本的建築
-    Normal2
+    Normal2,
+    DELTA //台達館
 };
 
 struct MapBuildInfo {
@@ -24,9 +26,9 @@ class Map{
         void init(){
             // 初始化地圖資料 (比例座標; 0..1)
             map_data = {
-                {0.2f, 0.5f, BuildKind::Normal},     // 左邊這棟是商店
-                {0.5f, 0.5f, BuildKind::Normal},  // 中間這棟是圖書館
-                {0.8f, 0.3f, BuildKind::Normal2},     // 右邊這棟是宿舍
+                {0.0f, 0.5f, BuildKind::Normal},
+                {0.5f, 0.0f, BuildKind::DELTA},
+                {0.8f, 0.3f, BuildKind::Normal2},
             };
             // 不在這裡直接 draw(); 讓 game loop 呼叫 draw()
         }
@@ -59,6 +61,8 @@ class Map{
             switch(kind){
                 case BuildKind::Normal2:
                     return new Build_A();
+                case BuildKind::DELTA:
+                    return new Build_delta();
                 case BuildKind::Normal:
                 default:
                     return new Build();

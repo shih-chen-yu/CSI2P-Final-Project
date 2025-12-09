@@ -57,7 +57,7 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     x + padding,
                     y + padding + 40,
                     0,
-                    "- Buy Drink：$50 Restore 20 stamina"
+                    "-(1) Buy Drink：$50 Restore 20 stamina"
                 );
                 al_draw_text(
                     font,
@@ -65,7 +65,7 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     x + padding,
                     y + padding + 70,
                     0,
-                    "- Buy Bento：$80 Restore 50 stamina"
+                    "-(2) Buy Bento：$80 Restore 50 stamina"
                 );
             }else{
                 const char* item_name = (pending_item == 1 ? "Drink" : "Bento");

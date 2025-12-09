@@ -17,10 +17,10 @@ namespace Buildsetting{
 void Build::init(){
     char buffer[100];
     
-    // ★ 修正點：直接取得回傳值，不要加 .c_str()
+    // 直接取得回傳值
     const char* baseName = sprite_basename(); 
 
-    // ★ 防呆：如果讀到空字串（通常是因為 Level.txt 有空行），給個預設值以免當機
+    // 如果讀到空字串（通常是因為 Level.txt 有空行），給個預設值以免當機
     if(baseName == nullptr || strlen(baseName) == 0) {
         printf("[Error] Empty basename detected in Build::init! Check Level.txt for empty lines.\n");
         baseName = "building"; // 暫時給個預設檔名防止崩潰
@@ -32,9 +32,6 @@ void Build::init(){
         baseName
     );
     main_picpath = std::string{buffer};
-
-    // ★ 根據你的截圖，提示圖片應該是在 building 資料夾下
-    // 原本是 "./assets/image/F.png" -> 改成下面這樣：
     hint_picpath = "./assets/image/F.png";
 
     ImageCenter* IC = ImageCenter::get_instance();
@@ -47,7 +44,7 @@ void Build::init(){
     }
 
     DataCenter* DC = DataCenter::get_instance();
-    scale = 75.0 / al_get_bitmap_width(pic);
+    scale = 125.0 / al_get_bitmap_width(pic);
     hint_scale = 0.2;
 
     shape.reset(new Rectangle{
