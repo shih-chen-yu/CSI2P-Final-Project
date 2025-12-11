@@ -51,6 +51,8 @@ public:
 	double FPS;
 	int window_width, window_height;
 	double camera_x, camera_y;
+	float camera_shake_timer;     // 剩餘抖動時間（秒）
+    float camera_shake_strength;  // 初始抖動強度（像素）
 	/**
 	 * @brief The width and height of game area (not window size). That is, the region excludes menu region.
 	 * @details The game area is sticked to the top-left of the display window.
