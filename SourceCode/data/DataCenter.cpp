@@ -31,7 +31,8 @@ DataCenter::DataCenter() {
     this->game_field_length = DataSetting::game_field_length;
     this->camera_x = 0.0;
     this->camera_y = 0.0;
-
+    camera_shake_timer = 0.0f;    
+    camera_shake_strength = 0.0f;
     memset(key_state, false, sizeof(key_state));
     memset(prev_key_state, false, sizeof(prev_key_state));
     mouse = Point(0, 0);

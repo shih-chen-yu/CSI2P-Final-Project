@@ -38,6 +38,7 @@ private:
 	ALLEGRO_BITMAP *background;   // 遊戲中背景（現在用的）
     ALLEGRO_BITMAP *menu_bg;      // 主選單背景
     ALLEGRO_BITMAP *select_bg;    // 角色/關卡選擇背景
+	ALLEGRO_BITMAP* skull_img;
 
 	// 背景音樂 & 音量
     ALLEGRO_SAMPLE_INSTANCE *bgm_instance; // BGM 播放實例
@@ -49,6 +50,10 @@ private:
 	//UI *ui;
 	int selected_hero_index = 0;       // Select 畫面正在選的角色
     static constexpr int HERO_TYPE_MAX = 3;  // 要跟 HeroSetting::HERO_TYPE_MAX 一致
+	bool  hero_starved;           // 是不是因為餓死而 Game Over
+    bool  game_over_sound_played; // Game Over 音效有沒有播過
+    float game_over_timer;        // Game Over 進入後經過時間（秒）
+	
 };
 
 #endif

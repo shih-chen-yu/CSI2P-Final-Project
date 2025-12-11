@@ -9,6 +9,8 @@
 
 #include <allegro5/allegro_font.h>
 #include <cstdlib>
+#include "../data/SoundCenter.h"
+#include "../info/StarveInfo.h"
 
 namespace BuildDeltaSetting {
     constexpr float office_prob = 0.5f; // 系辦剩食機率
@@ -293,6 +295,16 @@ void Build_delta::update_ui(UI* ui) {
                     stamina = -BuildDeltaSetting::camp_poison_damage;
                     msg_fmt = "你吃到過期的營隊剩食！飽食度 -%.0f！";
                     debug_log("Delta: camp leftovers POISONED.\n");
+                     SoundCenter* SC = SoundCenter::get_instance();
+                    if (SC) {
+                        SC->play("./assets/sound/vomit.mp3", ALLEGRO_PLAYMODE_ONCE);
+                    }
+                    DC->camera_shake_timer    = 0.4f;  // 抖 0.4 秒
+                    DC->camera_shake_strength = 12.0f; // 最大位移約 ±12 像素
+                    if (DC->starve_info) {
+                        DC->starve_info->trigger_poison_flash();
+                    }
+
                 } else {
                     // 正常：恢復飽食度
                     stamina = BuildDeltaSetting::camp_stamina;
