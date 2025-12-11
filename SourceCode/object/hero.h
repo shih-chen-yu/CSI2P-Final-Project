@@ -22,6 +22,7 @@ class HERO : public Object{
         double get_deposit() const { return deposit; }
         void add_stamina(double stamina) { starve += stamina; }
         void reduce_deposit(int cost) { deposit -= cost; }
+        void add_deposit(int reward) { deposit += reward; }
         void set_type(int type_index);
         std::pair<float, float> get_position() const {
             return {shape->center_x(), shape->center_y()};

@@ -11,15 +11,15 @@
 #include <cstdlib>
 
 namespace BuildDeltaSetting {
-    constexpr float office_prob = 0.5f; // 系辦剩食機率
-    constexpr float camp_prob   = 0.5f; // 營隊剩食機率
+    constexpr float office_prob = 0.1f; // 系辦剩食機率
+    constexpr float camp_prob   = 0.1f; // 營隊剩食機率
 
     // 回復 / 扣飽食度
     constexpr double office_stamina = 30.0; // 系辦剩食：恢復
     constexpr double camp_stamina   = 50.0; // 營隊剩食：正常恢復
 
     // ⭐ 營隊剩食：有機率是過期的
-    constexpr float  camp_poison_prob   = 0.99f; // 壞掉的機率
+    constexpr float  camp_poison_prob   = 0.1f; // 壞掉的機率
     constexpr double camp_poison_damage = 40.0;  // 中毒時倒扣 40 飽食度
 }
 

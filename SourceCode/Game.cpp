@@ -232,7 +232,7 @@ Game::game_update() {
 			double dt = 1.0 / DC->FPS;
 			DC->leveltimer->update(dt);
 
-			int timer_level = DC->leveltimer->get_level();
+			//int timer_level = DC->leveltimer->get_level();
 
             if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
                 if(bgm_instance) SC->toggle_playing(bgm_instance);

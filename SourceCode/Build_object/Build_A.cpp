@@ -78,7 +78,7 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     "Confirm Purchase"
                 );
                 char buf[100];
-                sprintf(buf, "確定購買 %s?", item_name, pending_item);
+                sprintf(buf, "確定購買 %s?", item_name);
                 al_draw_text(
                     font,
                     al_map_rgb(255, 255, 255),
@@ -191,8 +191,7 @@ void Build_A::child_update(){
 
         float r = std::rand() / (float)RAND_MAX;
         if(r < cur_prob){
-            debug_log("Lucky event TRIGGERED! p = %f\n", cur_prob);
-
+            debug_log("Shiao Chi Bu start to sell some lunch\n");
             // 中獎後機率重設
             cur_prob = base_prob;
             StateA = BuildStateA::Food;
@@ -204,8 +203,6 @@ void Build_A::child_update(){
         } else {
             cur_prob += prob_step;
             if(cur_prob > max_prob) cur_prob = max_prob;
-
-            debug_log("Lucky event MISSED! new p = %f\n", cur_prob);
         }
     }else{
         
