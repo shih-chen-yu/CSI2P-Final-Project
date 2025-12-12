@@ -3,7 +3,9 @@
 #include "../data/GIFCenter.h"
 #include "../algif5/algif.h"
 #include "../shapes/Rectangle.h"
+
 #include "../object/ui.h"
+#include "../object/Bullet.h"
 
 
 namespace HeroSetting{
@@ -67,7 +69,21 @@ void HERO::draw(){
 
 void HERO::update(){
     DataCenter* DC = DataCenter::get_instance();
+
     if(starve > 100) starve = 100;
+    bool space_pressed = DC->key_state[ALLEGRO_KEY_SPACE] && !DC->prev_key_state[ALLEGRO_KEY_SPACE];
+    if (space_pressed) {
+        // 取得主角位置與滑鼠位置
+        auto [hx, hy] = get_position();
+        double mx = DC->mouse.x + DC->camera_x;
+        double my = DC->mouse.y + DC->camera_y;
+
+        Bullet* b = new Bullet();
+        b->init(hx, hy, mx, my);
+        DC->bullets.push_back(b);
+        starve -= 1.0; // 射擊會消耗飢餓值
+    }
+
     if(!(DC->ui && DC->ui->is_open())){
         if(DC->key_state[ALLEGRO_KEY_W]){
             shape->update_center_y(shape->center_y() - speed);

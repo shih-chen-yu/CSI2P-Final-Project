@@ -4,10 +4,12 @@
 #include "../object/hero.h"
 #include "../object/Build.h"
 #include "../object/ui.h"
+#include "../object/Bullet.h"
 
 void OperationCenter::update() {
     _update_monster();
     _update_hero_build();
+    _update_bullets();
 }
 
 void OperationCenter::_update_monster() {
@@ -20,6 +22,50 @@ void OperationCenter::_draw_monster() {
 	std::vector<Monster*> &monsters = DataCenter::get_instance()->monsters;
 	for(Monster *monster : monsters)
 		monster->draw();
+}
+
+void OperationCenter::_update_bullets() {
+    DataCenter* DC = DataCenter::get_instance();
+    auto &bullets = DC->bullets;
+
+    for (auto it = bullets.begin(); it != bullets.end(); ) {
+        Bullet* b = *it;
+        if (!b) {
+            it = bullets.erase(it);
+            continue;
+        }
+
+        b->update();
+
+        // ===== 子彈撞怪物 =====
+        auto &monsters = DC->monsters;
+        for (Monster* m : monsters) {
+            if (!m) continue;
+            if (!m->is_alive()) continue;
+
+            if (b->shape && m->shape && b->shape->overlap(*(m->shape))) {
+                m->on_hit_by_bullet();
+                b->kill();   // 或 b->dead = true; 看你怎麼做
+                break;       // 一顆子彈只打一次
+            }
+        }
+
+        if (b->is_dead()) {
+            delete b;
+            it = bullets.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void OperationCenter::_draw_bullets() {
+    DataCenter* DC = DataCenter::get_instance();
+    auto &bullets = DC->bullets;
+
+    for (Bullet* b : bullets) {
+        if (b) b->draw();
+    }
 }
 
 void OperationCenter::_update_hero_build(){
@@ -68,4 +114,5 @@ void OperationCenter::_update_hero_build(){
 }
 void OperationCenter::draw() {
 	_draw_monster();
+    _draw_bullets();
 }

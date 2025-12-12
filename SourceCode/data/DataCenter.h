@@ -11,9 +11,6 @@ class Player;
 class Level;
 class LevelTimer;
 
-class HERO;
-class Build;
-
 class UI;
 class Map;
 class Phone;
@@ -25,6 +22,7 @@ class TimeInfo;
 class Monster;
 class HERO;
 class Build;
+class Bullet;
 
 class UI;
 class Map;
@@ -165,6 +163,12 @@ public:
 	 * @see Monster
 	 */
 	std::vector<Monster*> monsters;
+
+	/**
+	 * @brief Raw list of Bullet objects.
+	 * @see Bullet
+	 */
+	std::vector<Bullet*> bullets;
 private:
 	DataCenter();
 };

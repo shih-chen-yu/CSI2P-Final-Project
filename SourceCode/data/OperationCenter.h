@@ -27,8 +27,12 @@ private:
 private:
 	void _update_monster();
 	void _update_hero_build();
+
+    void _update_bullets();
+    void _bullet_collisions();
 private:
 	void _draw_monster();
+	void _draw_bullets();
 };
 
 #endif

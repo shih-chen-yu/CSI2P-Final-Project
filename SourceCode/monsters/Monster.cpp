@@ -106,6 +106,8 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
             region.center_x() + pixel_offset_x,
             region.center_y() + pixel_offset_y
         });
+        spawn_x = shape->center_x();
+        spawn_y = shape->center_y();
     }
 
     // AI 狀態初始化
@@ -162,6 +164,27 @@ void Monster::update() {
     double fps = DC->FPS;
     double cx = shape->center_x();
     double cy = shape->center_y();
+
+    // ===== 死亡狀態：不更新移動，不畫動畫，只倒數復活 =====
+    if (!alive) {
+        respawn_timer -= 1.0 / DC->FPS;
+        if (respawn_timer <= 0.0) {
+            alive = true;
+            respawn_timer = 0.0;
+
+            // 回到初始出生點
+            shape->update_center_x(spawn_x);
+            shape->update_center_y(spawn_y);
+
+            // 重置 AI（讓它像新出生一樣）
+            ai_state = AIState::WANDER;
+            vx = vy = 0.0;
+            wander_timer = 0.0;
+            target_building = nullptr;
+            chase_phase = 0;
+        }
+        return; // 很重要：死掉時完全不做原本 update 流程
+    }
 
     // 確保每個方向都有一個 vector
     if (bitmap_img_ids.size() < 4) {
@@ -333,6 +356,8 @@ void Monster::update() {
 }
 
 void Monster::draw() {
+    if (!alive) return;
+    
     ImageCenter *IC = ImageCenter::get_instance();
 
     if (bitmap_img_ids.size() < 4) {
@@ -369,4 +394,26 @@ void Monster::draw() {
         shape->center_x() - al_get_bitmap_width(bitmap) / 2,
         shape->center_y() - al_get_bitmap_height(bitmap) / 2,
         0);
+}
+
+void Monster::on_hit_by_bullet() {
+    if (!alive) return;
+
+    alive = false;
+    respawn_timer = 5.0;  // 5 秒
+
+    // 讓它確實不動（雖然 alive=false 時你也不 update 了）
+    vx = 0.0;
+    vy = 0.0;
+
+    // 如果你有鎖定建築，記得解除，避免那棟永遠被 targeted
+    if (target_building) {
+        target_building->set_targeted(false);
+        target_building = nullptr;
+    }
+
+    // 也可以順便重置 AI
+    ai_state = AIState::WANDER;
+    wander_timer = 0.0;
+    chase_phase = 0;
 }

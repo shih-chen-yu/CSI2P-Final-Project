@@ -43,6 +43,9 @@ public:
     void update();          // ★ 這裡不要 override，因為 Object 沒有 virtual update()
     void draw() override;   // draw 有在 Object 宣告成 virtual，所以可以 override
 
+    void on_hit_by_bullet();  // 子彈命中時呼叫
+    bool is_alive() const { return alive; }
+
     const int &get_money() const { return money; }
     int HP;
 
@@ -53,6 +56,10 @@ protected:
     int bitmap_switch_counter;
     int bitmap_switch_freq;
     int bitmap_img_id;
+
+    bool alive = true;
+    double respawn_timer = 0.0;      // 秒
+    double spawn_x = 0.0, spawn_y = 0.0; // 初始出生點(世界座標)
 
 private:
     MonsterType type;

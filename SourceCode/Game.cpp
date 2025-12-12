@@ -468,9 +468,6 @@ Game::game_draw() {
 			// 讓骷髏頭有一點呼吸縮放（1.0 ~ 1.2 倍）
 			float scale = 1.0f + 0.2f * std::sin(game_over_timer * 3.0f);
 
-			float draw_w = sw * scale;
-			float draw_h = sh * scale;
-
 			// 把骷髏頭放在角色頭上方一點（hy - XX）
 			float skull_x = (float)hx;
 			float skull_y = (float)hy - 60.0f;   // ★ 調高避免被 GAME OVER 擋到
