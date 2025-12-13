@@ -744,6 +744,7 @@ Game::game_draw() {
 
         DC->starve_info->draw();
         DC->coin_info->draw();
+		DC->time_info->draw();
 
         if(DC->ui && DC->ui->is_open()){
             DC->ui->draw();
