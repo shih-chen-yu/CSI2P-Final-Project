@@ -36,9 +36,11 @@ private:
 	ALLEGRO_EVENT event;
 	ALLEGRO_BITMAP *game_icon;
 	ALLEGRO_BITMAP *background;   // 遊戲中背景（現在用的）
+	ALLEGRO_BITMAP *start_bg;
     ALLEGRO_BITMAP *menu_bg;      // 主選單背景
     ALLEGRO_BITMAP *select_bg;    // 角色/關卡選擇背景
 	ALLEGRO_BITMAP* skull_img;
+	ALLEGRO_BITMAP* start_button;
 
 	// 背景音樂 & 音量
     ALLEGRO_SAMPLE_INSTANCE *bgm_instance; // BGM 播放實例
