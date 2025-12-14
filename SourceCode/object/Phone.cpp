@@ -1,6 +1,7 @@
 #include "Phone.h"
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
+#include "../data/ImageCenter.h"
 #include "../Utils.h"
 
 #include <allegro5/allegro_primitives.h>
@@ -82,6 +83,24 @@ void Phone::update() {
         else ++it;
     }
 
+    // ===== 更新 icon 旋轉動畫 =====
+    double t = al_get_time();
+    if (spin_active) {
+        // 進度 0~1
+        double start_time = spin_end_time - spin_duration;
+        double p = (t - start_time) / spin_duration;
+        if (p < 0.0) p = 0.0;
+        if (p > 1.0) p = 1.0;
+
+        // 轉一圈：0 -> 2π
+        icon_angle = (float)(p * 6.283185307179586);
+
+        if (t >= spin_end_time) {
+            spin_active = false;
+            icon_angle = 0.0f;
+        }
+    }
+
     // ===== 換頁按鍵（只在 open 的時候）=====
     if (!open) return;
 
@@ -98,11 +117,56 @@ void Phone::update() {
 
 void Phone::draw() {
     FontCenter *FC = FontCenter::get_instance();
+    ImageCenter* IC = ImageCenter::get_instance();
 
     // 取得螢幕尺寸
     ALLEGRO_DISPLAY *disp = al_get_current_display();
     float dw = (float)al_get_display_width(disp);
     float dh = (float)al_get_display_height(disp);
+
+    // ====== 關閉狀態：只畫右下角小圖示 ======
+    if (!open) {
+        const float pad = 18.0f;
+        float cx = dw - pad - icon_size / 2.0f;
+        float cy = dh - pad - icon_size / 2.0f;
+
+        ALLEGRO_BITMAP* icon = IC->get("./assets/image/phone.png");
+        if (!icon) {
+            // 如果你想 debug：畫一行字看看是不是載不到
+            // al_draw_text(FC->NotoSansCJK[FontSize::SMALL], al_map_rgb(255,0,0), 20, 20, 0, "phone.png load failed");
+            return;
+        }
+
+        float iw = (float)al_get_bitmap_width(icon);
+        float ih = (float)al_get_bitmap_height(icon);
+
+        // 防呆：避免 0 尺寸導致 scale 爆炸
+        if (iw <= 0 || ih <= 0) return;
+
+        float scale = icon_size / std::max(iw, ih);
+
+        // ✅ 直接畫：以圖片中心為 pivot，畫到右下角中心 (cx, cy)
+        al_draw_scaled_rotated_bitmap(
+            icon,
+            iw / 2.0f, ih / 2.0f,   // pivot：圖片中心
+            cx, cy,                 // 目標中心
+            scale, scale,           // 縮放到 icon_size
+            icon_angle,             // 旋轉角度（弧度）
+            0
+        );
+
+        // 未讀紅點
+        if (!food_infos.empty()) {
+            al_draw_filled_circle(
+                cx + icon_size * 0.35f,
+                cy - icon_size * 0.35f,
+                6.0f,
+                al_map_rgb(255, 60, 60)
+            );
+        }
+        return;
+    }
+    // ===== 開啟狀態：畫整個手機面板 =====
 
     // ========== 背景遮罩 ==========
     al_draw_filled_rectangle(

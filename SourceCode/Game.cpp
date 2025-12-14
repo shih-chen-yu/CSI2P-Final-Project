@@ -436,7 +436,7 @@ Game::game_update() {
         if(DC->ui && DC->ui->is_open()){
             DC->ui->update();
         }
-        if(DC->phone && DC->phone->is_open()){
+        if(DC->phone){
             DC->phone->update();
         }
     }
@@ -831,7 +831,7 @@ Game::game_draw() {
         if(DC->ui && DC->ui->is_open()){
             DC->ui->draw();
         }
-        if(DC->phone && DC->phone->is_open()){
+        if(DC->phone){
             DC->phone->draw();
         }
 
