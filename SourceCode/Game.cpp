@@ -41,6 +41,18 @@ namespace {
         "cat"
     };
     constexpr int HERO_TYPE_MAX = sizeof(HERO_NAMES) / sizeof(HERO_NAMES[0]);
+	void draw_fullscreen_bitmap(ALLEGRO_BITMAP* bmp, int win_w, int win_h) {
+        if (!bmp) return;
+        int bw = al_get_bitmap_width(bmp);
+        int bh = al_get_bitmap_height(bmp);
+
+        al_draw_scaled_bitmap(
+            bmp,
+            0, 0, bw, bh,        // 原圖區域
+            0, 0, win_w, win_h,  // 填滿整個視窗
+            0
+        );
+    }
 }
 
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
@@ -48,6 +60,8 @@ constexpr char game_start_sound_path[] = "./assets/sound/growl.wav";
 constexpr char menu_img_path[]           = "./assets/image/MenuBackground.png";
 constexpr char select_img_path[]         = "./assets/image/SelectBackground.png";
 constexpr char background_img_path[] = "./assets/image/StartBackground.jpg";
+constexpr char start_img_path[] = "./assets/image/start.png";
+constexpr char start_button_img_path[] = "./assets/image/start_button.png";
 constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
 constexpr char game_over_sound_path[] = "./assets/sound/game-over-38511.mp3";
 constexpr char skull_img_path[] = "./assets/image/skull.png";
@@ -167,6 +181,8 @@ Game::game_init() {
 	menu_bg   = IC->get(menu_img_path);
 	select_bg = IC->get(select_img_path);
 	background = IC->get(background_img_path);
+	start_bg = IC->get(start_img_path);
+	start_button = IC->get(start_button_img_path);
 	skull_img = IC->get(skull_img_path); 
 
 	DC->level->init();
@@ -207,6 +223,27 @@ Game::game_update() {
             if(DC->key_state[ALLEGRO_KEY_ESCAPE] && !DC->prev_key_state[ALLEGRO_KEY_ESCAPE]) {
                 return false;
             }
+			float cx = DC->window_width / 2.f;
+			float btn_w = 260.0f;
+			float btn_h = 70.0f;
+			float btn_x = cx - btn_w / 2.0f;
+			float btn_y = DC->window_height * 0.7f;
+
+			bool left_now  = DC->mouse_state[1];        // 1 = 左鍵
+			bool left_prev = DC->prev_mouse_state[1];
+
+			// 這一幀剛按下左鍵
+			if (left_now && !left_prev) {
+				int mx = DC->mouse.x;
+				int my = DC->mouse.y;
+
+				if (mx >= btn_x && mx <= btn_x + btn_w &&
+					my >= btn_y && my <= btn_y + btn_h) {
+
+					debug_log("<Game> START: PLAY button clicked, change to HELP\n");
+					state = STATE::HELP;   // 如果你要直接進 UI 或 LEVEL，在這裡改
+				}
+			}
             break;
         }
 		case STATE::HELP: {
@@ -579,18 +616,63 @@ Game::game_draw() {
 
 
     if(state == STATE::START) {
-        if(menu_bg) {
-            al_draw_bitmap(menu_bg, 0, 0, 0);
-        }
-        al_draw_text(
-            FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
-            DC->window_width / 2., DC->window_height / 2.,
-            ALLEGRO_ALIGN_CENTRE, "PRESS ENTER TO START");
-        al_draw_text(
-            FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
-            DC->window_width / 2., DC->window_height / 2. + 40,
-            ALLEGRO_ALIGN_CENTRE, "ESC TO QUIT");
-    }
+		if (start_bg) {
+			draw_fullscreen_bitmap(start_bg, DC->window_width, DC->window_height);
+		} else if (background) {
+			al_draw_bitmap(background, 0, 0, 0);
+		}
+
+		float cx = DC->window_width / 2.f;
+		float cy = DC->window_height / 2.f;
+
+		// al_draw_text(
+		// 	FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
+		// 	DC->window_width / 2., DC->window_height / 2. + 40,
+		// 	ALLEGRO_ALIGN_CENTRE, "PRESS ENTER TO START");
+		// al_draw_text(
+		// 	FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+		// 	DC->window_width / 2., DC->window_height / 2. + 80,
+		// 	ALLEGRO_ALIGN_CENTRE, "ESC TO QUIT");
+
+		// ⭐ PLAY 按鈕（畫面中間偏下）
+		float btn_w = 260.0f;
+		float btn_h = 70.0f;
+		float btn_x = cx - btn_w / 2.0f;
+		float btn_y = DC->window_height * 0.65f;
+
+		if (start_button) {
+			int bw = al_get_bitmap_width(start_button);
+			int bh = al_get_bitmap_height(start_button);
+
+			// 把 1307x416 的圖縮放到 260x70，貼在原本按鈕位置
+			al_draw_scaled_bitmap(
+				start_button,
+				0, 0, bw, bh,       // 原圖整張
+				btn_x, btn_y,       // 螢幕位置（左上角）
+				btn_w, btn_h,       // 顯示成 260x70
+				0
+			);
+		} else {
+			// 萬一圖載不到就退回之前的矩形按鈕
+			al_draw_filled_rounded_rectangle(
+				btn_x, btn_y,
+				btn_x + btn_w, btn_y + btn_h,
+				15, 15,
+				al_map_rgb(40, 40, 40)
+			);
+			al_draw_rounded_rectangle(
+				btn_x, btn_y,
+				btn_x + btn_w, btn_y + btn_h,
+				15, 15,
+				al_map_rgb(255, 255, 255),
+				3
+			);
+			al_draw_text(
+				FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
+				cx, btn_y + btn_h / 2.0f - 12.0f,
+				ALLEGRO_ALIGN_CENTRE, "PLAY");
+		}
+	}
     else if(state == STATE::HELP) {
         if(menu_bg) {
             al_draw_bitmap(menu_bg, 0, 0, 0);
