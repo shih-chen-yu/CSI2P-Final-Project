@@ -306,6 +306,22 @@ void Build_TSMC::update_ui(UI* ui) {
                 break;
             }
             case TSMCChoice::Buy711: {
+                // ⭐ 先檢查錢夠不夠
+                if (!hero->can_afford(BuildTSMCSetting::store_cost)) {
+                    result_message = "錢不夠，7-11 買不起……";
+                    result_timer   = BuildTSMCSetting::msg_frames;
+
+                    // 發手機通知
+                    DC->phone->add_notification(
+                        "台積館 7-11",
+                        "購買失敗：餘額不足",
+                        "錢不夠無法購買，先去想辦法賺錢或省一點再來。"
+                    );
+
+                    debug_log("TSMC: not enough money for 7-11.\n");
+                    break; // 不扣錢、不加飽食、不消耗這次補貨
+                }
+
                 hero->reduce_deposit(BuildTSMCSetting::store_cost);
                 hero->add_stamina(BuildTSMCSetting::store_stamina);
                 store_food_available = false;

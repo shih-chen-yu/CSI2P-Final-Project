@@ -96,6 +96,18 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     "按下E確認，Q 取消"
                 );
             }
+
+            // 顯示錢不夠 / 其他提示
+            if (ui_message_timer > 0 && !ui_message.empty()) {
+                al_draw_text(
+                    font,
+                    al_map_rgb(255, 80, 80), // 紅色提示
+                    x + padding,
+                    y + padding + 120,
+                    0,
+                    ui_message.c_str()
+                );
+            }
             break;
         }
         case BuildStateA::Nothing:
@@ -119,6 +131,11 @@ void Build_A::update_ui(UI* ui) {
     if (StateA != BuildStateA::Food) {
         // 沒食物時，UI 只能看，不能做事
         return;
+    }
+    // UI 提示倒數
+    if (ui_message_timer > 0) {
+        ui_message_timer--;
+        if (ui_message_timer <= 0) ui_message.clear();
     }
 
     // 讀 key edge
@@ -156,25 +173,44 @@ void Build_A::update_ui(UI* ui) {
 
         // ⭐ 按 E 確認購買（統一按鍵）
         if (keyE_pressed) {
+            int cost = 0;
+            double stamina = 0;
+            const char* item_name = "";
+            
             if (pending_item == 1) {
                 // Drink
-                debug_log("Shop: confirm buy Drink.\n");
-                DC->hero->add_stamina(BuildASetting::drink_stamina);
-                DC->hero->reduce_deposit(BuildASetting::drink_cost);
+                cost = BuildASetting::drink_cost;
+                stamina = BuildASetting::drink_stamina;
+                item_name = "飲料";
             }
             else if (pending_item == 2) {
                 // Bento
-                debug_log("Shop: confirm buy Bento.\n");
-                DC->hero->add_stamina(BuildASetting::bento_stamina);
-                DC->hero->reduce_deposit(BuildASetting::bento_cost);
+                cost = BuildASetting::bento_cost;
+                stamina = BuildASetting::bento_stamina;
+                item_name = "便當";
             }
+            
+            // 檢查是否有足夠的錢
+            if (DC->hero->can_afford(cost)) {
+                debug_log("Shop: confirm buy %s.\n", item_name);
+                DC->hero->add_stamina(stamina);
+                DC->hero->reduce_deposit(cost);
+                
+                // 結帳後商品售罄
+                StateA = BuildStateA::Nothing;
+                in_confirm = false;
+                pending_item = 0;
+                
+                DC->ui->close();
+            } else {
+                debug_log("Shop: not enough money to buy %s.\n", item_name);
 
-            // 結帳後商品售罄
-            StateA = BuildStateA::Nothing;
-            in_confirm = false;
-            pending_item = 0;
-
-            DC->ui->close();
+                // 留在確認頁面，顯示提示（2 秒）
+                char msg[100];
+                sprintf(msg, "錢不夠！需要 $%d，目前 $%d", cost, (int)DC->hero->get_deposit());
+                ui_message = msg;
+                ui_message_timer = 120; // 假設 60 FPS -> 2 秒
+            }
         }
     }
 }

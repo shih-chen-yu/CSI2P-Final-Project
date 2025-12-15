@@ -22,6 +22,7 @@ class HERO : public Object{
         double get_deposit() const { return deposit; }
         void add_stamina(double stamina) { starve += stamina; }
         void reduce_deposit(int cost) { deposit -= cost; }
+        bool can_afford(int cost) const { return deposit >= cost; }
         void add_deposit(int reward) { deposit += reward; }
         void set_type(int type_index);
         std::pair<float, float> get_position() const {
@@ -29,11 +30,12 @@ class HERO : public Object{
         }
     private:
         HeroState State = HeroState::FRONT;
-        double speed = 2;
+        double speed = 1.5;
+        double stamina_extra_speed = 1.5;
         double starve = 100;
         double starve_decrease_rate = 0.01; // 每次 update 減少的飢餓值
         double starve_decrease_rate_walk = 0.05; // 如果有走路的狀態下 update減少的飢餓值
-        double deposit = 114514;
+        double deposit = 1;
         std::map<HeroState, std::string> gifPath;
         int hero_type_index = 0;
 };

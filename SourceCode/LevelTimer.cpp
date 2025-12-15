@@ -5,15 +5,15 @@
 #include "data/DataCenter.h"
 
 LevelTimer::LevelTimer()
-    : interval_sec(60.0), elapsed_sec(0.0), level(1) {
+    : interval_sec(10.0), elapsed_sec(0.0), level(1) {
     // 這裡只做「安全的初始值」
     // 真正的設定由 init() 負責
 }
 
-void LevelTimer::init(double interval_sec, int start_level) {
-    this->interval_sec = interval_sec;
+void LevelTimer::init() {
+    this->interval_sec = 90.0;
     this->elapsed_sec  = 0.0;
-    this->level        = start_level;
+    this->level        = 1;
 }
 
 void LevelTimer::update(double dt) {

@@ -86,19 +86,19 @@ void HERO::update(){
 
     if(!(DC->ui && DC->ui->is_open())){
         if(DC->key_state[ALLEGRO_KEY_W]){
-            shape->update_center_y(shape->center_y() - speed);
+            shape->update_center_y(shape->center_y() - speed - stamina_extra_speed * (starve / 100.0));
             State = HeroState::BACK;
             starve -= starve_decrease_rate_walk;
         }else if(DC->key_state[ALLEGRO_KEY_S]){
-            shape->update_center_y(shape->center_y() + speed);
+            shape->update_center_y(shape->center_y() + speed + stamina_extra_speed * (starve / 100.0));
             State = HeroState::FRONT;
             starve -= starve_decrease_rate_walk;
         }else if(DC->key_state[ALLEGRO_KEY_A]){
-            shape->update_center_x(shape->center_x() - speed);
+            shape->update_center_x(shape->center_x() - speed - stamina_extra_speed * (starve / 100.0));
             State = HeroState::LEFT;
             starve -= starve_decrease_rate_walk;
         }else if(DC->key_state[ALLEGRO_KEY_D]){
-            shape->update_center_x(shape->center_x() + speed);
+            shape->update_center_x(shape->center_x() + speed + stamina_extra_speed * (starve / 100.0));
             State = HeroState::RIGHT;
             starve -= starve_decrease_rate_walk;
         }else{

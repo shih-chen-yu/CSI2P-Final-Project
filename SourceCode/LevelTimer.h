@@ -7,7 +7,7 @@ public:
     LevelTimer();  // constructor 不做參數設定，只做安全初始化
 
     // 用來初始化這個 timer
-    void init(double interval_sec = 30.0, int start_level = 1);
+    void init();
 
     // 每一 frame 呼叫一次，dt = 這一 frame 過了幾秒
     void update(double dt);

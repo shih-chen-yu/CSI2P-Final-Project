@@ -64,6 +64,7 @@ constexpr char start_img_path[] = "./assets/image/start.png";
 constexpr char start_button_img_path[] = "./assets/image/start_button.png";
 constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
 constexpr char game_over_sound_path[] = "./assets/sound/game-over-38511.mp3";
+constexpr char game_success_sound_path[] = "./assets/sound/gamepass.mp3";
 constexpr char skull_img_path[] = "./assets/image/skull.png";
 
 void
@@ -195,6 +196,9 @@ Game::game_init() {
     game_over_sound_played = false;
     game_over_timer = 0.0f;
 
+	game_success_sound_played = false;   // ★
+	game_success_timer = 0.0f;           // ★
+
 	debug_log("Game state: change to START\n");
 	state = STATE::START;
 	al_start_timer(timer);
@@ -276,8 +280,21 @@ Game::game_update() {
                 debug_log("Volume Down: %f\n", bgm_volume);
             }
 			DC->leveltimer->update(dt);
+			int timer_level = DC->leveltimer->get_level();
+			if (timer_level > 4) { // ★ 通關：level > 4 → END_SUCCESS
+				debug_log("<Game> state: change to END_SUCCESS (CLEAR)\n");
 
-			//int timer_level = DC->leveltimer->get_level();
+				// 停 BGM（跟你餓死 END 一樣）
+				if (bgm_instance) {
+					SC->toggle_playing(bgm_instance);
+				}
+
+				game_success_sound_played = false;
+				game_success_timer = 0.0f;
+				state = STATE::END_SUCCESS;
+				break;
+			}
+			
 
             if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
 				debug_log("<Game> state: change to PAUSE\n");
@@ -391,7 +408,23 @@ Game::game_update() {
             }
             break;
 		}
+		case STATE::END_SUCCESS: {
+			if (!game_success_sound_played) {
+				SoundCenter* SC = SoundCenter::get_instance();
+				if (SC) {
+					SC->play(game_success_sound_path, ALLEGRO_PLAYMODE_ONCE);
+				}
+				game_success_sound_played = true;
+				game_success_timer = 0.0f;
+			}
 
+			game_success_timer += static_cast<float>(dt);
+
+			if (DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
+				return false;
+			}
+			break;
+		}
     }
 
     if(state != STATE::PAUSE) {
@@ -454,7 +487,63 @@ Game::game_draw() {
 
 	al_clear_to_color(al_map_rgb(100, 100, 100));
 
-	if(state == STATE::END) {
+	if (state == STATE::END_SUCCESS) {
+		// 你可以選擇：要不要也顯示場景背景
+		if(background) {
+			al_draw_bitmap(background, 0, 0, 0);
+		} else {
+			al_clear_to_color(al_map_rgb(0,0,0));
+		}
+
+		float t = game_success_timer;
+		if (t > 1.0f) t = 1.0f;
+
+		// 淡入遮罩
+		unsigned char alpha = (unsigned char)(t * 180);
+		al_draw_filled_rectangle(
+			0, 0, DC->window_width, DC->window_height,
+			al_map_rgba(0, 0, 0, alpha)
+		);
+
+		float cx = DC->window_width / 2.f;
+		float cy = DC->window_height / 2.f;
+
+		ALLEGRO_COLOR title_col = al_map_rgba(255,255,255,(unsigned char)(255*t));
+		al_draw_text(
+			FC->caviar_dreams[FontSize::LARGE],
+			title_col,
+			cx, cy - 60,
+			ALLEGRO_ALIGN_CENTRE,
+			"YOU WIN!"
+		);
+
+		ALLEGRO_COLOR sub_col = al_map_rgba(200,200,200,(unsigned char)(255*t));
+		al_draw_text(
+			FC->caviar_dreams[FontSize::MEDIUM],
+			sub_col,
+			cx, cy,
+			ALLEGRO_ALIGN_CENTRE,
+			"All levels cleared"
+		);
+
+		if (t > 0.5f) {
+			float hint_t = (t - 0.5f) / 0.5f;
+			if (hint_t < 0.0f) hint_t = 0.0f;
+			if (hint_t > 1.0f) hint_t = 1.0f;
+
+			ALLEGRO_COLOR hint_col = al_map_rgba(200,200,200,(unsigned char)(255*hint_t));
+			al_draw_text(
+				FC->caviar_dreams[FontSize::MEDIUM],
+				hint_col,
+				cx, cy + 80,
+				ALLEGRO_ALIGN_CENTRE,
+				"Press ENTER to exit"
+			);
+		}
+
+		al_flip_display();
+		return;
+	}else if(state == STATE::END) {
 		// 1. 先畫遊戲場景（跟 LEVEL 一樣）
 		if(background) {
 			al_draw_bitmap(background, 0, 0, 0);

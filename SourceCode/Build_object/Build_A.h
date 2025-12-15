@@ -80,6 +80,9 @@ private:
     // ===== 新增：食物數量 + 有沒有 NPC 在搶 =====
     int  food_amount         = 0;     // 之後可以真正用來記「有幾份」
     bool targeted_by_monster = false; // 是否有 NPC 正在往這棟衝
+
+    std::string ui_message;
+    int ui_message_timer = 0; // frame 倒數（例如 120 = 2 秒）
 };
 
 #endif

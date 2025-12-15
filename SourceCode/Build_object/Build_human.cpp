@@ -256,6 +256,14 @@ void Build_human::update_ui(UI* ui) {
                 break;
             }
             case HumanChoice::Mcdonald: {
+                // ⭐ 先檢查錢夠不夠
+                if (!DC->hero->can_afford(BuildHumanSetting::mcd_cost)) {
+                    result_message = "錢不夠，買不起麥當勞！";
+                    result_timer   = BuildHumanSetting::msg_frames;
+                    debug_log("Human: not enough money for McDonald's.\n");
+                    break; // 不扣錢、不加飽食、不進冷卻
+                }
+
                 DC->hero->reduce_deposit(BuildHumanSetting::mcd_cost);
                 DC->hero->add_stamina(BuildHumanSetting::mcd_stamina);
 
@@ -269,6 +277,7 @@ void Build_human::update_ui(UI* ui) {
                         BuildHumanSetting::mcd_cooldown_sec);
                 result_message = buf;
                 result_timer   = BuildHumanSetting::msg_frames;
+
                 debug_log("Human: McDonald's purchased.\n");
                 break;
             }

@@ -30,7 +30,8 @@ private:
 		UI,    // 選角 / 選關
 		LEVEL, // 遊戲主畫面
 		PAUSE,
-		END
+		END,
+		END_SUCCESS
 	};
 	STATE state;
 	ALLEGRO_EVENT event;
@@ -56,6 +57,8 @@ private:
     bool  game_over_sound_played; // Game Over 音效有沒有播過
     float game_over_timer;        // Game Over 進入後經過時間（秒）
 	
+	bool game_success_sound_played = false;
+	float game_success_timer = 0.0f;
 };
 
 #endif
