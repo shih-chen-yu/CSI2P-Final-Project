@@ -12,7 +12,7 @@ struct FoodInfo {
     std::string content;
 
     double create_time = 0.0;
-    double life_time   = 8.0;
+    double life_time   = -1.0;
 };
 
 class Phone : public Object{
@@ -33,6 +33,11 @@ public:
         spin_active = true;
         spin_end_time = al_get_time() + spin_duration;
     }
+    void upsert_food_status(const std::string& building_name,
+                            const std::string& message,
+                            const std::string& content);
+
+    void clear_food_status(const std::string& building_name);
 
 private:
     bool open = false;

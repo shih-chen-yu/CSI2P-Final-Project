@@ -2,6 +2,7 @@
 #define BUILD_DELTA_H_INCLUDED
 
 #include "../object/Build.h"
+#include <string>
 
 class UI;
 
@@ -32,8 +33,8 @@ private:
     int interval_frames = 60 * 5;  // 假設 60 FPS → 每 5 秒檢查一次
 
     // 兩種活動是否目前「有剩食可領」
-    bool office_available = false; // 系辦剩食
-    bool camp_available   = false; // 營隊剩食
+    int office_count = 0; // 系辦剩食剩餘份數
+    int camp_count = 0;   // 營隊剩食剩餘份數
 
     // UI 二階段確認用
     bool          in_confirm   = false;

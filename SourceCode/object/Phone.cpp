@@ -67,6 +67,47 @@ static void clamp_lines_with_ellipsis(ALLEGRO_FONT* font,
     }
     last += ell;
 }
+void Phone::upsert_food_status(const std::string& building_name,
+                               const std::string& message,
+                               const std::string& content)
+{
+    double now = al_get_time();
+
+    // 找同 building 的狀態通知：有就更新，沒有就新增
+    for (auto &it : food_infos) {
+        if (it.building_name == building_name) {
+            it.message = message;
+            it.content = content;
+
+            // 讓它不會過期 + 更新時間讓它排在較新
+            it.create_time = now;
+            it.life_time   = 1e18;
+
+            // 收到更新：轉一圈提醒
+            spin_active = true;
+            spin_end_time = now + spin_duration;
+            return;
+        }
+    }
+
+    FoodInfo info{building_name, message, content, now, 1e18};
+    food_infos.push_back(info);
+
+    spin_active = true;
+    spin_end_time = now + spin_duration;
+}
+
+void Phone::clear_food_status(const std::string& building_name)
+{
+    for (auto it = food_infos.begin(); it != food_infos.end(); ) {
+        if (it->building_name == building_name) it = food_infos.erase(it);
+        else ++it;
+    }
+
+    // 頁碼防呆（避免刪完 current_page 超界）
+    if (current_page < 0) current_page = 0;
+    if (current_page > total_pages_cached - 1) current_page = total_pages_cached - 1;
+}
 
 void Phone::init() {
 
@@ -79,8 +120,10 @@ void Phone::update() {
     // ===== 清掉過期通知 =====
     for (auto it = food_infos.begin(); it != food_infos.end(); ) {
         double age = now - it->create_time;
-        if (age >= it->life_time) it = food_infos.erase(it);
-        else ++it;
+        if (it->life_time >= 0.0 && age >= it->life_time)
+            it = food_infos.erase(it);
+        else
+            ++it;
     }
 
     // ===== 更新 icon 旋轉動畫 =====

@@ -3,15 +3,24 @@
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
 #include "../object/ui.h"
+#include "../info/TimeInfo.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
-#include "../Utils.h"
 
+#include "../Utils.h"
+#include <algorithm> 
 #include <allegro5/allegro_font.h>
 #include <cstdlib>
 #include "../data/SoundCenter.h"
 #include "../info/StarveInfo.h"
 
+static int get_current_year() {
+    DataCenter* DC = DataCenter::get_instance();
+    if (DC && DC->time_info) {
+        return DC->time_info->get_level(); // 1~4
+    }
+    return 1;
+}
 namespace BuildDeltaSetting {
     constexpr float office_prob = 0.1f; // 系辦剩食機率
     constexpr float camp_prob   = 0.1f; // 營隊剩食機率
@@ -44,7 +53,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
     float padding = 20.0f;
 
     // ===== 沒任何剩食可領 =====
-    if (!office_available && !camp_available) {
+    if (office_count<= 0 && camp_count<= 0) {
         al_draw_text(
             font,
             al_map_rgb(255, 255, 0),
@@ -90,7 +99,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
 
         float yy = y + padding + 40;
 
-        if (office_available && camp_available) {
+        if (office_count > 0 && camp_count > 0) {
             // 兩個選項都有：1 = 系辦，2 = 營隊
             al_draw_text(
                 font,
@@ -121,7 +130,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
                 "請按 1 或 2 選擇要領取的剩食"
             );
         }
-        else if (office_available && !camp_available) {
+        else if (office_count > 0&& camp_count <=0) {
             // 只有系辦剩食：只有 1 有效
             al_draw_text(
                 font,
@@ -142,7 +151,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
                 "按下對應數字鍵選擇"
             );
         }
-        else if (!office_available && camp_available) {
+        else if (office_count <= 0 && camp_count > 0) {
             // 只有營隊剩食：只有 1 有效（UI 也只寫 1）
             al_draw_text(
                 font,
@@ -230,7 +239,7 @@ void Build_delta::update_ui(UI* ui) {
 
     if (result_timer > 0) result_timer--;
 
-    if (!office_available && !camp_available) {
+    if (office_count <= 0&& camp_count <= 0) {
         // 沒東西可領，UI 只顯示說明
         return;
     }
@@ -246,11 +255,11 @@ void Build_delta::update_ui(UI* ui) {
 
         // 情況 1：按 1 → 如果 office 有，選 office；如果 office 沒有但 camp 有 → 選 camp
         if (key1_pressed) {
-            if (office_available) {
+            if (office_count) {
                 in_confirm   = true;
                 pending_kind = DeltaFoodKind::Office;
                 debug_log("Delta: choose office leftovers (via 1).\n");
-            } else if (camp_available) {
+            } else if (camp_count) {
                 in_confirm   = true;
                 pending_kind = DeltaFoodKind::Camp;
                 debug_log("Delta: choose camp leftovers (via 1, only choice).\n");
@@ -260,7 +269,7 @@ void Build_delta::update_ui(UI* ui) {
 
         // 情況 2：按 2 → 只有在 camp 有的時候才有效，office-only 時無效
         if (key2_pressed) {
-            if (camp_available) {
+            if (camp_count) {
                 in_confirm   = true;
                 pending_kind = DeltaFoodKind::Camp;
                 debug_log("Delta: choose camp leftovers (via 2).\n");
@@ -284,7 +293,7 @@ void Build_delta::update_ui(UI* ui) {
             if (pending_kind == DeltaFoodKind::Office) {
                 // 系辦一定是正常的
                 stamina = BuildDeltaSetting::office_stamina;
-                office_available = false;
+                office_count--;
                 msg_fmt = "你獲得了 %.0f 飽食度！";
             }
             else if (pending_kind == DeltaFoodKind::Camp) {
@@ -311,7 +320,7 @@ void Build_delta::update_ui(UI* ui) {
                     msg_fmt = "你獲得了 %.0f 飽食度！";
                     debug_log("Delta: camp leftovers OK.\n");
                 }
-                camp_available = false;
+                camp_count--;
             }
 
             // 實際套用到主角飽食度（支援正負）
@@ -345,39 +354,52 @@ void Build_delta::child_update() {
     if (frames_passed < interval_frames) return;
     frames_passed = 0;
 
+    int year = get_current_year();
     // 系辦剩食事件：獨立機率、固定不調整
-    if (!office_available) {
-        float r = std::rand() / (float)RAND_MAX;
-        if (r < BuildDeltaSetting::office_prob) {
-            office_available = true;
-            debug_log("Delta: office leftovers event TRIGGERED.\n");
-            DC->phone->add_notification(
-                "台達館系辦剩食",
-                "系辦會議結束，有多的點心可以領取！",
-                "快到台達館看看還有沒有你喜歡的。"
-            );
-        }
+    if (office_count <= 0) DC->phone->clear_food_status("台達館系辦剩食");
+    else {
+        char msg2[64];
+        sprintf(msg2, "目前剩餘 %d 份，先到先拿！", office_count);
+        DC->phone->upsert_food_status("台達館系辦剩食", "系辦會議結束，有多的點心可以領取！", msg2);
     }
 
-    // 營隊剩食事件：獨立機率、固定不調整
-    if (!camp_available) {
+    // 營隊：沒貨才補
+    if (camp_count <= 0) {
         float r = std::rand() / (float)RAND_MAX;
         if (r < BuildDeltaSetting::camp_prob) {
-            camp_available = true;
-            debug_log("Delta: camp leftovers event TRIGGERED.\n");
-            DC->phone->add_notification(
+            camp_count = std::max(1, 3 - (year / 2));  // 你原本的難度曲線
+
+            char msg2[64];
+            if (camp_count == 1) sprintf(msg2, "⚠️ 只剩最後 1 份，要搶要快！");
+            else sprintf(msg2, "目前剩餘 %d 份，先到先拿！", camp_count);
+
+            DC->phone->upsert_food_status(
                 "台達館營隊剩食",
-                "電機系營隊結束，有多的餐盒 / 點心可以免費領！",
-                "台達館一樓集合，先到先拿。"
+                "營隊結束，有免費餐盒！",
+                msg2
             );
+        } else {
+            // 沒補到貨，確保手機不要顯示過期狀態
+            DC->phone->clear_food_status("台達館營隊剩食");
         }
+    } else {
+        // camp_count > 0：保持手機顯示最新剩餘
+        char msg2[64];
+        if (camp_count == 1) sprintf(msg2, "⚠️ 只剩最後 1 份，要搶要快！");
+        else sprintf(msg2, "目前剩餘 %d 份，先到先拿！", camp_count);
+
+        DC->phone->upsert_food_status(
+            "台達館營隊剩食",
+            "營隊結束，有免費餐盒！",
+            msg2
+        );
     }
 }
 
 void Build_delta::child_init() {
     frames_passed = 0;
-    office_available = false;
-    camp_available   = false;
+    office_count= 0;
+    camp_count  = 0;
     in_confirm       = false;
     pending_kind     = DeltaFoodKind::None;
 }

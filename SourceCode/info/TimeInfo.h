@@ -7,6 +7,7 @@ public:
     void init();
     void update(int data);
     void draw();
+    int get_level() const { return level; }
 private:
     float x,y,w,h; // bar rect
     float padding;
