@@ -3,7 +3,7 @@
 #include "../data/FontCenter.h"
 #include "../data/ImageCenter.h"
 #include "../Utils.h"
-
+#include <cstdio>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 
@@ -122,8 +122,38 @@ void Phone::add_notification(const std::string& key,
                              const std::string& message,
                              const std::string& content)
 {
-    // 直接當作「狀態」通知：有就更新、沒有就新增，而且永久顯示
-     upsert_food_status(key, building_name, message, content);
+    double now = al_get_time();
+
+    // 如果同 key 已存在，就更新它並重置為「30 秒通知」
+    for (auto &it : food_infos) {
+        if (it.key == key) {
+            it.building_name = building_name;
+            it.message = message;
+            it.content = content;
+            it.create_time = now;
+            it.life_time   = 30.0;   // ✅ merge1：通知預設 30 秒
+
+            // ✅ merge1：收到通知一定轉圈
+            spin_active = true;
+            spin_end_time = now + spin_duration;
+            return;
+        }
+    }
+
+    // 沒有就新增一則「30 秒通知」
+    FoodInfo info;
+    info.key = key;
+    info.building_name = building_name;
+    info.message = message;
+    info.content = content;
+    info.create_time = now;
+    info.life_time = 30.0;            // ✅ merge1：通知預設 30 秒
+
+    food_infos.push_back(info);
+
+    // ✅ merge1：收到通知一定轉圈
+    spin_active = true;
+    spin_end_time = now + spin_duration;
 }
 void Phone::update() {
     DataCenter* DC = DataCenter::get_instance();

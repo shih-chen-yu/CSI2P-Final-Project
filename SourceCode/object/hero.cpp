@@ -3,11 +3,13 @@
 #include "../data/GIFCenter.h"
 #include "../algif5/algif.h"
 #include "../shapes/Rectangle.h"
-
+#include "../data/SoundCenter.h"
+#include <algorithm>
 #include "../object/ui.h"
 #include "../object/Bullet.h"
 
-
+static constexpr const char* coin_up_sfx   = "./assets/sound/coin.mp3";
+static constexpr const char* coin_down_sfx = "./assets/sound/cashier.mp3";
 namespace HeroSetting{
     static constexpr char gif_root_path[50] = "./assets/gif/Hero";
     static constexpr char gif_postfix[][10] = {
@@ -20,6 +22,8 @@ namespace HeroSetting{
     };
     static constexpr size_t HERO_TYPE_MAX = sizeof(hero_name) / sizeof(hero_name[0]);
 }
+
+
 void HERO::set_type(int type_index) {
     if (type_index < 0) type_index = 0;
     if (type_index >= (int)HeroSetting::HERO_TYPE_MAX)
@@ -99,35 +103,49 @@ void HERO::update(){
         }
     }
 
-    if(!(DC->ui && DC->ui->is_open())){
+     if(!(DC->ui && DC->ui->is_open())){
         if(DC->key_state[ALLEGRO_KEY_W]){
             shape->update_center_y(shape->center_y() - speed - stamina_extra_speed * (starve / 100.0));
             State = HeroState::BACK;
-            if (!god_mode) {
-                starve -= starve_decrease_rate_walk;
-            }
+            if (!god_mode) starve -= starve_decrease_rate_walk;
         }else if(DC->key_state[ALLEGRO_KEY_S]){
             shape->update_center_y(shape->center_y() + speed + stamina_extra_speed * (starve / 100.0));
             State = HeroState::FRONT;
-            if (!god_mode) {
-                starve -= starve_decrease_rate_walk;
-            }
+            if (!god_mode) starve -= starve_decrease_rate_walk;
         }else if(DC->key_state[ALLEGRO_KEY_A]){
             shape->update_center_x(shape->center_x() - speed - stamina_extra_speed * (starve / 100.0));
             State = HeroState::LEFT;
-            if (!god_mode) {
-                starve -= starve_decrease_rate_walk;
-            }
+            if (!god_mode) starve -= starve_decrease_rate_walk;
         }else if(DC->key_state[ALLEGRO_KEY_D]){
             shape->update_center_x(shape->center_x() + speed + stamina_extra_speed * (starve / 100.0));
             State = HeroState::RIGHT;
-            if (!god_mode) {
-                starve -= starve_decrease_rate_walk;
-            }
+            if (!god_mode) starve -= starve_decrease_rate_walk;
         }else{
-            if (!god_mode) {
-                starve -= starve_decrease_rate_walk;
-            }
+            // ✅ 站著不動：改回比較慢的 idle 扣法（merge1 的邏輯）
+            if (!god_mode) starve -= starve_decrease_rate;
+        }
+    }
+}
+void HERO::add_deposit(int reward) {
+    if (reward <= 0) return;   // 防呆
+    deposit += reward;
+
+    if (auto* SC = SoundCenter::get_instance()) {
+        SC->play(coin_up_sfx, ALLEGRO_PLAYMODE_ONCE);
+    }
+}
+
+void HERO::reduce_deposit(int cost) {
+    if (cost <= 0) return;
+
+    int before = deposit;
+
+    deposit -= cost;
+    if (deposit < 0) deposit = 0;
+
+    if (deposit != before) {
+        if (auto* SC = SoundCenter::get_instance()) {
+            SC->play("./assets/sound/cashier.mp3", ALLEGRO_PLAYMODE_ONCE);
         }
     }
 }

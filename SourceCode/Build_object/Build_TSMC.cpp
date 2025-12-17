@@ -2,6 +2,7 @@
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
+#include "../data/ImageCenter.h"   // ✅ 加回圖片
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
@@ -9,6 +10,7 @@
 
 #include <allegro5/allegro_font.h>
 #include <cstdlib>  // rand
+#include <cstdio>   // snprintf/sprintf
 
 // ====== 可調整參數 ======
 namespace BuildTSMCSetting {
@@ -29,11 +31,19 @@ namespace BuildTSMCSetting {
 
     // UI 顯示
     constexpr int    msg_frames     = 120;   // 結果訊息顯示 frame 數
+
+    // ✅ merge1 圖片資源加回來
+    static constexpr const char* img_normal = "./assets/image/TSMC_ui/TSMC.jpg";
+    static constexpr const char* img_rob    = "./assets/image/TSMC_ui/billgate.jpg";
+    static constexpr const char* img_store  = "./assets/image/TSMC_ui/711.jpg";
+    static constexpr const char* img_amba   = "./assets/image/TSMC_ui/food.jpg";
 }
+
 namespace {
-    constexpr const char* KEY_AMBA  = "台積館 AMBA 剩食";
-    constexpr const char* KEY_BOSS  = "台積館大老闆現身";
-    constexpr const char* KEY_TSMC_711   = "台積館 7-11 補貨";
+    // ✅ merge2 的固定 key（用來 upsert/clear）
+    constexpr const char* KEY_AMBA      = "台積館 AMBA 剩食";
+    constexpr const char* KEY_BOSS      = "台積館大老闆現身";
+    constexpr const char* KEY_TSMC_711  = "台積館 7-11 補貨";
 }
 
 // ========== 基本互動開關 UI ==========
@@ -50,7 +60,6 @@ void Build_TSMC::on_interact() {
 }
 
 // ========== UI 繪製 ==========
-
 void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
     FontCenter* FC = FontCenter::get_instance();
     ALLEGRO_FONT* font = FC->NotoSansCJK[FontSize::SMALL];
@@ -84,53 +93,36 @@ void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
         int option_index = 1;
 
         if (amba_food_available) {
-            char buf[128];
-            sprintf(buf, "- (%d) AMBA 下課剩食便當（免費，恢復 %.0f 飽食度）",
-                    option_index, BuildTSMCSetting::amba_stamina);
-            al_draw_text(
-                font,
-                al_map_rgb(255, 255, 255),
-                x + padding,
-                yy,
-                0,
-                buf
+            char buf[160];
+            std::snprintf(buf, sizeof(buf),
+                "- (%d) AMBA 下課剩食便當（免費，恢復 %.0f 飽食度）",
+                option_index, BuildTSMCSetting::amba_stamina
             );
+            al_draw_text(font, al_map_rgb(255, 255, 255), x + padding, yy, 0, buf);
             yy += 30.0f;
             option_index++;
         }
 
         if (boss_available) {
-            char buf[160];
-            sprintf(buf,
-                    "- (%d) 打劫路過的大老闆（成功 +%d 元；失敗飽食度變 1）",
-                    option_index, BuildTSMCSetting::rob_reward);
-            al_draw_text(
-                font,
-                al_map_rgb(255, 255, 255),
-                x + padding,
-                yy,
-                0,
-                buf
+            char buf[200];
+            std::snprintf(buf, sizeof(buf),
+                "- (%d) 打劫路過的大老闆（成功 +%d 元；失敗飽食度變 1）",
+                option_index, BuildTSMCSetting::rob_reward
             );
+            al_draw_text(font, al_map_rgb(255, 255, 255), x + padding, yy, 0, buf);
             yy += 30.0f;
             option_index++;
         }
 
         if (store_food_available) {
-            char buf[160];
-            sprintf(buf,
-                    "- (%d) 7-11 食物（$%d，恢復 %.0f 飽食度）",
-                    option_index,
-                    BuildTSMCSetting::store_cost,
-                    BuildTSMCSetting::store_stamina);
-            al_draw_text(
-                font,
-                al_map_rgb(255, 255, 255),
-                x + padding,
-                yy,
-                0,
-                buf
+            char buf[200];
+            std::snprintf(buf, sizeof(buf),
+                "- (%d) 7-11 食物（$%d，恢復 %.0f 飽食度）",
+                option_index,
+                BuildTSMCSetting::store_cost,
+                BuildTSMCSetting::store_stamina
             );
+            al_draw_text(font, al_map_rgb(255, 255, 255), x + padding, yy, 0, buf);
             yy += 30.0f;
             option_index++;
         }
@@ -164,22 +156,10 @@ void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
             break;
         }
 
-        al_draw_text(
-            font,
-            al_map_rgb(255, 255, 255),
-            x + padding,
-            yy,
-            0,
-            line1
-        );
+        al_draw_text(font, al_map_rgb(255, 255, 255), x + padding, yy, 0, line1);
         yy += 30.0f;
 
-        al_draw_text(
-            font,
-            al_map_rgb(200, 200, 200),
-            x + padding,
-            yy,
-            0,
+        al_draw_text(font, al_map_rgb(200, 200, 200), x + padding, yy, 0,
             "按下 E 確認，ESC 取消"
         );
     }
@@ -195,19 +175,54 @@ void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
             result_message.c_str()
         );
     }
+
+    // ✅ merge1 圖片區塊加回來（依 pending_choice 切圖）
+    ImageCenter* IC = ImageCenter::get_instance();
+    const char* img_path = BuildTSMCSetting::img_normal;
+
+    if (in_confirm) {
+        switch (pending_choice) {
+        case TSMCChoice::RobBoss:  img_path = BuildTSMCSetting::img_rob;   break;
+        case TSMCChoice::Buy711:   img_path = BuildTSMCSetting::img_store; break;
+        case TSMCChoice::AMBAFood: img_path = BuildTSMCSetting::img_amba;  break;
+        default:                   img_path = BuildTSMCSetting::img_normal; break;
+        }
+    }
+
+    ALLEGRO_BITMAP* ui_img = IC->get(img_path);
+    if (ui_img) {
+        float img_padding = 10.0f;
+        float reserve_bottom = 60.0f;
+        float img_x1 = x + padding;
+        float img_x2 = x + w - padding;
+
+        float img_y1 = y + h * 0.55f;
+        float img_y2 = y + h - reserve_bottom;
+
+        if (img_y2 > img_y1) {
+            int bw = al_get_bitmap_width(ui_img);
+            int bh = al_get_bitmap_height(ui_img);
+
+            al_draw_scaled_bitmap(
+                ui_img,
+                0, 0, bw, bh,
+                img_x1, img_y1 + img_padding,
+                (img_x2 - img_x1),
+                (img_y2 - img_y1) - img_padding,
+                0
+            );
+        }
+    }
 }
 
 // ========== UI 邏輯 ==========
-
 void Build_TSMC::update_ui(UI* ui) {
     DataCenter* DC = DataCenter::get_instance();
 
     // 更新結果訊息計時器
     if (result_timer > 0) {
         result_timer--;
-        if (result_timer <= 0) {
-            result_message.clear();
-        }
+        if (result_timer <= 0) result_message.clear();
     }
 
     bool key1_pressed = DC->key_state[ALLEGRO_KEY_1] && !DC->prev_key_state[ALLEGRO_KEY_1];
@@ -217,22 +232,16 @@ void Build_TSMC::update_ui(UI* ui) {
     bool esc_pressed  = DC->key_state[ALLEGRO_KEY_ESCAPE] && !DC->prev_key_state[ALLEGRO_KEY_ESCAPE];
 
     if (!in_confirm) {
-        // ===== 第一階段：選擇條目 =====
-        if (!amba_food_available && !boss_available && !store_food_available) {
-            // 沒東西可選，直接 return（只是進來看看）
-            return;
-        }
+        if (!amba_food_available && !boss_available && !store_food_available) return;
 
-        // 跟 draw_ui 一樣的順序，從上到下給 1,2,3
         int option_index = 1;
 
         if (amba_food_available) {
             if ((option_index == 1 && key1_pressed) ||
                 (option_index == 2 && key2_pressed) ||
                 (option_index == 3 && key3_pressed)) {
-                in_confirm     = true;
+                in_confirm = true;
                 pending_choice = TSMCChoice::AMBAFood;
-                debug_log("TSMC: choose AMBA food.\n");
                 return;
             }
             option_index++;
@@ -242,9 +251,8 @@ void Build_TSMC::update_ui(UI* ui) {
             if ((option_index == 1 && key1_pressed) ||
                 (option_index == 2 && key2_pressed) ||
                 (option_index == 3 && key3_pressed)) {
-                in_confirm     = true;
+                in_confirm = true;
                 pending_choice = TSMCChoice::RobBoss;
-                debug_log("TSMC: choose Rob Boss.\n");
                 return;
             }
             option_index++;
@@ -254,24 +262,22 @@ void Build_TSMC::update_ui(UI* ui) {
             if ((option_index == 1 && key1_pressed) ||
                 (option_index == 2 && key2_pressed) ||
                 (option_index == 3 && key3_pressed)) {
-                in_confirm     = true;
+                in_confirm = true;
                 pending_choice = TSMCChoice::Buy711;
-                debug_log("TSMC: choose 7-11 food.\n");
                 return;
             }
             option_index++;
         }
+
     } else {
-        // ===== 第二階段：確認 / 取消 =====
         if (esc_pressed) {
-            in_confirm     = false;
+            in_confirm = false;
             pending_choice = TSMCChoice::None;
-            debug_log("TSMC: cancel choice.\n");
             return;
         }
 
         if (keyE_pressed) {
-            auto* hero = DataCenter::get_instance()->hero;
+            auto* hero = DC->hero;
 
             switch (pending_choice) {
             case TSMCChoice::AMBAFood: {
@@ -279,54 +285,48 @@ void Build_TSMC::update_ui(UI* ui) {
                 amba_food_available = false;
                 DC->phone->clear_food_status(KEY_AMBA);
 
-                char buf[100];
-                sprintf(buf, "你去 AMBA 領到剩食便當，飽食度 +%.0f！",
-                        BuildTSMCSetting::amba_stamina);
+                char buf[120];
+                std::snprintf(buf, sizeof(buf),
+                    "你去 AMBA 領到剩食便當，飽食度 +%.0f！",
+                    BuildTSMCSetting::amba_stamina
+                );
                 result_message = buf;
                 result_timer   = BuildTSMCSetting::msg_frames;
-
-                debug_log("TSMC: AMBA food taken.\n");
                 break;
             }
             case TSMCChoice::RobBoss: {
                 float r = std::rand() / (float)RAND_MAX;
                 if (r < BuildTSMCSetting::rob_success_p) {
-                    // 打劫成功 → 加錢
                     hero->add_deposit(BuildTSMCSetting::rob_reward);
 
-                    char buf[100];
-                    sprintf(buf, "你成功打劫大老闆，獲得 %d 元！",
-                            BuildTSMCSetting::rob_reward);
+                    char buf[120];
+                    std::snprintf(buf, sizeof(buf),
+                        "你成功打劫大老闆，獲得 %d 元！",
+                        BuildTSMCSetting::rob_reward
+                    );
                     result_message = buf;
                 } else {
-                    // 失敗 → 飽食度變 1
                     double cur = hero->get_starve();
                     hero->add_stamina(BuildTSMCSetting::beaten_starve - cur);
-
                     result_message = "你被大老闆海扁一頓，飽食度只剩 1 點……";
                 }
                 boss_available = false;
                 DC->phone->clear_food_status(KEY_BOSS);
                 result_timer   = BuildTSMCSetting::msg_frames;
-
-                debug_log("TSMC: Rob boss resolved.\n");
                 break;
             }
             case TSMCChoice::Buy711: {
-                // ⭐ 先檢查錢夠不夠
                 if (!hero->can_afford(BuildTSMCSetting::store_cost)) {
                     result_message = "錢不夠，7-11 買不起……";
                     result_timer   = BuildTSMCSetting::msg_frames;
 
-                    // 發手機通知
+                    // 保留 merge2 的通知（你原本就寫了）
                     DC->phone->add_notification(
                         "台積館 7-11",
                         "購買失敗：餘額不足",
                         "錢不夠無法購買，先去想辦法賺錢或省一點再來。"
                     );
-
-                    debug_log("TSMC: not enough money for 7-11.\n");
-                    break; // 不扣錢、不加飽食、不消耗這次補貨
+                    break;
                 }
 
                 hero->reduce_deposit(BuildTSMCSetting::store_cost);
@@ -334,32 +334,30 @@ void Build_TSMC::update_ui(UI* ui) {
                 store_food_available = false;
                 DC->phone->clear_food_status(KEY_TSMC_711);
 
-                char buf[120];
-                sprintf(buf, "你在台積館 7-11 買了食物，花費 %d 元，飽食度 +%.0f。",
-                        BuildTSMCSetting::store_cost,
-                        BuildTSMCSetting::store_stamina);
+                char buf[160];
+                std::snprintf(buf, sizeof(buf),
+                    "你在台積館 7-11 買了食物，花費 %d 元，飽食度 +%.0f。",
+                    BuildTSMCSetting::store_cost,
+                    BuildTSMCSetting::store_stamina
+                );
                 result_message = buf;
                 result_timer   = BuildTSMCSetting::msg_frames;
-
-                debug_log("TSMC: 7-11 food purchased.\n");
                 break;
             }
             default:
                 break;
             }
 
-            in_confirm     = false;
+            in_confirm = false;
             pending_choice = TSMCChoice::None;
         }
     }
 }
 
 // ========== 時間事件 ==========
-
 void Build_TSMC::child_update() {
     DataCenter* DC = DataCenter::get_instance();
 
-    // 每隔 interval_frames 檢查一次事件
     frames_passed++;
     if (frames_passed < interval_frames) return;
     frames_passed = 0;
@@ -369,7 +367,6 @@ void Build_TSMC::child_update() {
         float r = std::rand() / (float)RAND_MAX;
         if (r < BuildTSMCSetting::amba_prob) {
             amba_food_available = true;
-            debug_log("TSMC: AMBA food event TRIGGERED.\n");
 
             DC->phone->upsert_food_status(
                 KEY_AMBA,
@@ -379,12 +376,11 @@ void Build_TSMC::child_update() {
         }
     }
 
-    // 2. 大老闆來上課
+    // 2. 大老闆事件
     if (!boss_available) {
         float r = std::rand() / (float)RAND_MAX;
         if (r < BuildTSMCSetting::boss_prob) {
             boss_available = true;
-            debug_log("TSMC: Boss event TRIGGERED.\n");
 
             DC->phone->upsert_food_status(
                 KEY_BOSS,
@@ -401,16 +397,15 @@ void Build_TSMC::child_update() {
             store_food_available = true;
 
             DC->phone->upsert_food_status(
-                KEY_TSMC_711,                 // ← 固定 key（用來更新/清除）
-                "台積館 7-11 補貨",            // message（顯示用）
-                "7-11 剛補一批便當與點心，快來買！" // content
+                KEY_TSMC_711,
+                "台積館 7-11 補貨",
+                "7-11 剛補一批便當與點心，快來買！"
             );
         }
     }
 }
 
 // ========== 初始化 ==========
-
 void Build_TSMC::child_init() {
     in_confirm      = false;
     pending_choice  = TSMCChoice::None;
@@ -422,5 +417,5 @@ void Build_TSMC::child_init() {
     store_food_available = false;
 
     frames_passed   = 0;
-    interval_frames = 60 * 5;  // 你可以之後再調
+    interval_frames = 60 * 5;
 }

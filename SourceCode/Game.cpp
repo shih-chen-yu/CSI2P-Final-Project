@@ -41,6 +41,7 @@ namespace {
         "cat"
     };
     constexpr int HERO_TYPE_MAX = sizeof(HERO_NAMES) / sizeof(HERO_NAMES[0]);
+
 	void draw_fullscreen_bitmap(ALLEGRO_BITMAP* bmp, int win_w, int win_h) {
         if (!bmp) return;
         int bw = al_get_bitmap_width(bmp);
@@ -48,8 +49,8 @@ namespace {
 
         al_draw_scaled_bitmap(
             bmp,
-            0, 0, bw, bh,        // 原圖區域
-            0, 0, win_w, win_h,  // 填滿整個視窗
+            0, 0, bw, bh,
+            0, 0, win_w, win_h,
             0
         );
     }
@@ -59,15 +60,15 @@ constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
 constexpr char game_start_sound_path[] = "./assets/sound/growl.mp3";
 constexpr char menu_img_path[]           = "./assets/image/MenuBackground.png";
 constexpr char select_img_path[]         = "./assets/image/SelectBackground.png";
-constexpr char background_img_path[] = "./assets/image/StartBackground.jpg";
-constexpr char start_img_path[] = "./assets/image/start.png";
-constexpr char start_button_img_path[] = "./assets/image/start_button.png";
-constexpr char background_sound_path[] = "./assets/sound/u3krw-qzk20.wav";
-constexpr char game_over_sound_path[] = "./assets/sound/game-over-38511.mp3";
+constexpr char background_img_path[]     = "./assets/image/StartBackground.jpg";
+constexpr char start_img_path[]          = "./assets/image/start.png";
+constexpr char start_button_img_path[]   = "./assets/image/start_button.png";
+constexpr char background_sound_path[]   = "./assets/sound/u3krw-qzk20.wav";
+constexpr char game_over_sound_path[]    = "./assets/sound/game-over-38511.mp3";
 constexpr char game_success_sound_path[] = "./assets/sound/gamepass.mp3";
-constexpr char skull_img_path[] = "./assets/image/skull.png";
-constexpr char help_bg_img_path[] = "./assets/image/HelpBackground.png";
-constexpr char ui_bg_img_path[]   = "./assets/image/HelpBackground.png";
+constexpr char skull_img_path[]          = "./assets/image/skull.png";
+constexpr char help_bg_img_path[]        = "./assets/image/HelpBackground.png";
+constexpr char ui_bg_img_path[]          = "./assets/image/HelpBackground.png";
 
 void
 Game::execute() {
@@ -181,14 +182,15 @@ Game::game_init() {
 	DC->coin_info->init();
 	DC->time_info->init();
 
-	menu_bg   = IC->get(menu_img_path);
-	select_bg = IC->get(select_img_path);
-	background = IC->get(background_img_path);
-	start_bg = IC->get(start_img_path);
-	start_button = IC->get(start_button_img_path);
-	skull_img = IC->get(skull_img_path); 
-	help_bg = IC->get(help_bg_img_path);
-	ui_bg   = IC->get(ui_bg_img_path);
+	menu_bg     = IC->get(menu_img_path);
+	select_bg   = IC->get(select_img_path);
+	background  = IC->get(background_img_path);
+	start_bg    = IC->get(start_img_path);
+	start_button= IC->get(start_button_img_path);
+	skull_img   = IC->get(skull_img_path);
+	help_bg     = IC->get(help_bg_img_path);
+	ui_bg       = IC->get(ui_bg_img_path);
+
 	DC->level->init();
 	DC->leveltimer->init();
 
@@ -199,8 +201,8 @@ Game::game_init() {
     game_over_sound_played = false;
     game_over_timer = 0.0f;
 
-	game_success_sound_played = false;   // ★
-	game_success_timer = 0.0f;           // ★
+	game_success_sound_played = false;
+	game_success_timer = 0.0f;
 
 	debug_log("Game state: change to START\n");
 	state = STATE::START;
@@ -230,16 +232,16 @@ Game::game_update() {
             if(DC->key_state[ALLEGRO_KEY_ESCAPE] && !DC->prev_key_state[ALLEGRO_KEY_ESCAPE]) {
                 return false;
             }
+
 			float cx = DC->window_width / 2.f;
 			float btn_w = 260.0f;
 			float btn_h = 70.0f;
 			float btn_x = cx - btn_w / 2.0f;
 			float btn_y = DC->window_height * 0.7f;
 
-			bool left_now  = DC->mouse_state[1];        // 1 = 左鍵
+			bool left_now  = DC->mouse_state[1];
 			bool left_prev = DC->prev_mouse_state[1];
 
-			// 這一幀剛按下左鍵
 			if (left_now && !left_prev) {
 				int mx = DC->mouse.x;
 				int my = DC->mouse.y;
@@ -248,7 +250,7 @@ Game::game_update() {
 					my >= btn_y && my <= btn_y + btn_h) {
 
 					debug_log("<Game> START: PLAY button clicked, change to HELP\n");
-					state = STATE::HELP;   // 如果你要直接進 UI 或 LEVEL，在這裡改
+					state = STATE::HELP;
 				}
 			}
             break;
@@ -282,12 +284,21 @@ Game::game_update() {
                 if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
                 debug_log("Volume Down: %f\n", bgm_volume);
             }
+
+			// ===== merge1 的 debug 熱鍵（只加這兩個，其它照 merge2）=====
+			if(DC->key_state[ALLEGRO_KEY_C] && !DC->prev_key_state[ALLEGRO_KEY_C]) {
+				DC->hero->reduce_deposit(-100); // +100
+			}
+			if(DC->key_state[ALLEGRO_KEY_L] && !DC->prev_key_state[ALLEGRO_KEY_L]) {
+				DC->leveltimer->set_level(DC->leveltimer->get_level() + 1); // 跳關
+			}
+			// ============================================================
+
 			DC->leveltimer->update(dt);
 			int timer_level = DC->leveltimer->get_level();
-			if (timer_level > 4) { // ★ 通關：level > 4 → END_SUCCESS
+			if (timer_level > 4) {
 				debug_log("<Game> state: change to END_SUCCESS (CLEAR)\n");
 
-				// 停 BGM（跟你餓死 END 一樣）
 				if (bgm_instance) {
 					SC->toggle_playing(bgm_instance);
 				}
@@ -297,15 +308,15 @@ Game::game_update() {
 				state = STATE::END_SUCCESS;
 				break;
 			}
-			
 
             if(DC->key_state[ALLEGRO_KEY_P] && !DC->prev_key_state[ALLEGRO_KEY_P]) {
 				debug_log("<Game> state: change to PAUSE\n");
 				state = STATE::PAUSE;
 			}
+
             if(!god_mode && DC->hero->get_starve() <= 0.0) {
                 debug_log("<Game> state: change to END (STARVED)\n");
-				hero_starved = true;                 
+				hero_starved = true;
 				if (bgm_instance) {
                     SC->toggle_playing(bgm_instance);
                 }
@@ -376,7 +387,7 @@ Game::game_update() {
 			float slider_x2 = DC->window_width * 0.8f;
 			float slider_y  = DC->window_height * 0.7f;
 
-			if (DC->mouse_state[1]) { // 左鍵按住拖曳
+			if (DC->mouse_state[1]) {
 				int mx = DC->mouse.x;
 				int my = DC->mouse.y;
 				if (mx >= slider_x1 && mx <= slider_x2 &&
@@ -397,19 +408,16 @@ Game::game_update() {
 			break;
 		}
 
-
         case STATE::END: {
-			// ★ 進入 END 狀態的第一幀：播 Game Over 音效（只播一次）
 			if (!game_over_sound_played) {
                 SoundCenter* SC = SoundCenter::get_instance();
                 if (SC) {
                     SC->play(game_over_sound_path, ALLEGRO_PLAYMODE_ONCE);
                 }
                 game_over_sound_played = true;
-                game_over_timer = 0.0f;  // 動畫時間從 0 開始
+                game_over_timer = 0.0f;
             }
 
-            // 累積 Game Over 經過時間（用來做動畫）
             game_over_timer += static_cast<float>(dt);
 
             if (DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
@@ -455,8 +463,7 @@ Game::game_update() {
                 if (DC->camera_shake_timer < 0.0f)
                     DC->camera_shake_timer = 0.0f;
 
-                // t：0~1，用來讓抖動慢慢減弱
-                float t = DC->camera_shake_timer / 0.4f; // 0.4f 要跟上面設定時間一致
+                float t = DC->camera_shake_timer / 0.4f;
                 if (t < 0.0f) t = 0.0f;
                 if (t > 1.0f) t = 1.0f;
 
@@ -497,7 +504,6 @@ Game::game_draw() {
 	al_clear_to_color(al_map_rgb(100, 100, 100));
 
 	if (state == STATE::END_SUCCESS) {
-		// 你可以選擇：要不要也顯示場景背景
 		if(background) {
 			al_draw_bitmap(background, 0, 0, 0);
 		} else {
@@ -507,7 +513,6 @@ Game::game_draw() {
 		float t = game_success_timer;
 		if (t > 1.0f) t = 1.0f;
 
-		// 淡入遮罩
 		unsigned char alpha = (unsigned char)(t * 180);
 		al_draw_filled_rectangle(
 			0, 0, DC->window_width, DC->window_height,
@@ -553,7 +558,6 @@ Game::game_draw() {
 		al_flip_display();
 		return;
 	}else if(state == STATE::END) {
-		// 1. 先畫遊戲場景（跟 LEVEL 一樣）
 		if(background) {
 			al_draw_bitmap(background, 0, 0, 0);
 		} else {
@@ -572,7 +576,6 @@ Game::game_draw() {
 				DC->window_width, DC->window_height,
 				al_map_rgb(100, 100, 100));
 
-		// 使用 camera 把世界拉回畫面
 		ALLEGRO_TRANSFORM camera;
 		al_identity_transform(&camera);
 		al_translate_transform(&camera, -DC->camera_x, -DC->camera_y);
@@ -583,14 +586,11 @@ Game::game_draw() {
 		DC->hero->draw();
 		DC->level->draw();
 
-		// 回到畫面座標
 		ALLEGRO_TRANSFORM identity;
 		al_identity_transform(&identity);
 		al_use_transform(&identity);
 
-		// 2. 在主角身上畫「骷髏頭＋黑煙」特效（只有餓死的時候）
 		if (hero_starved && skull_img) {
-			// 把主角世界座標轉成螢幕座標
 			double hx = DC->hero->shape->center_x() - DC->camera_x;
 			double hy = DC->hero->shape->center_y() - DC->camera_y;
 
@@ -600,17 +600,14 @@ Game::game_draw() {
 			int sw = al_get_bitmap_width(skull_img);
 			int sh = al_get_bitmap_height(skull_img);
 
-			// 讓骷髏頭有一點呼吸縮放（1.0 ~ 1.2 倍）
 			float scale = 1.0f + 0.2f * std::sin(game_over_timer * 3.0f);
 
-			// 把骷髏頭放在角色頭上方一點（hy - XX）
 			float skull_x = (float)hx;
-			float skull_y = (float)hy - 60.0f;   // ★ 調高避免被 GAME OVER 擋到
+			float skull_y = (float)hy - 60.0f;
 
-			// 畫一點黑煙在角色腳邊（簡單幾個半透明圓）
 			int smoke_count = 6;
 			for (int i = 0; i < smoke_count; ++i) {
-				float angle = (float)i / smoke_count * 6.2831853f; // 2π
+				float angle = (float)i / smoke_count * 6.2831853f;
 				float base_r = 25.0f;
 				float wave   = 6.0f * std::sin(game_over_timer * 2.0f + i);
 				float dist   = base_r + wave;
@@ -622,25 +619,22 @@ Game::game_draw() {
 				al_draw_filled_circle(sx, sy, 12.0f, al_map_rgba(0, 0, 0, alpha));
 			}
 
-			// 用 tint 做一點淡入效果（剛 Game Over 時骷髏慢慢變亮）
 			ALLEGRO_COLOR tint = al_map_rgba_f(1.0f, 1.0f, 1.0f, t);
 
-			// 以骷髏頭中心為 anchor 來畫
 			al_draw_tinted_scaled_rotated_bitmap(
 				skull_img,
 				tint,
-				sw / 2.0f, sh / 2.0f,      // 圖片中心當 pivot
-				skull_x, skull_y,          // 螢幕上的位置
-				scale, scale,              // 縮放
-				0.0f,                      // 不旋轉（要的話可以加晃動）
-				0                           // flags
+				sw / 2.0f, sh / 2.0f,
+				skull_x, skull_y,
+				scale, scale,
+				0.0f,
+				0
 			);
 		}
 
-		// 3. 疊一層漸漸變暗的黑幕
 		float fade_t = game_over_timer;
 		if (fade_t > 1.0f) fade_t = 1.0f;
-		unsigned char alpha = (unsigned char)(fade_t * 200); // 最多 200/255 的黑
+		unsigned char alpha = (unsigned char)(fade_t * 200);
 		al_draw_filled_rectangle(
 			0, 0, DC->window_width, DC->window_height,
 			al_map_rgba(0, 0, 0, alpha)
@@ -649,7 +643,6 @@ Game::game_draw() {
 		float cx = DC->window_width  / 2.f;
 		float cy = DC->window_height / 2.f;
 
-		// 4. GAME OVER 文字從上方滑下來
 		float t = game_over_timer;
 		if (t > 1.0f) t = 1.0f;
 
@@ -670,7 +663,6 @@ Game::game_draw() {
 			"GAME OVER"
 		);
 
-		// 5. 餓死 / 其它原因 額外文字
 		const char* reason_text = hero_starved
 			? "You starved to death..."
 			: "You couldn't survive...";
@@ -688,7 +680,6 @@ Game::game_draw() {
 			reason_text
 		);
 
-		// 6. 過一小段時間才顯示「Press ENTER to exit」
 		if (t > 0.5f) {
 			float hint_t = (t - 0.5f) / 0.5f;
 			if (hint_t < 0.0f) hint_t = 0.0f;
@@ -712,7 +703,6 @@ Game::game_draw() {
 		return;
 	}
 
-
     if(state == STATE::START) {
 		if (start_bg) {
 			draw_fullscreen_bitmap(start_bg, DC->window_width, DC->window_height);
@@ -721,18 +711,7 @@ Game::game_draw() {
 		}
 
 		float cx = DC->window_width / 2.f;
-		float cy = DC->window_height / 2.f;
 
-		// al_draw_text(
-		// 	FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
-		// 	DC->window_width / 2., DC->window_height / 2. + 40,
-		// 	ALLEGRO_ALIGN_CENTRE, "PRESS ENTER TO START");
-		// al_draw_text(
-		// 	FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
-		// 	DC->window_width / 2., DC->window_height / 2. + 80,
-		// 	ALLEGRO_ALIGN_CENTRE, "ESC TO QUIT");
-
-		// ⭐ PLAY 按鈕（畫面中間偏下）
 		float btn_w = 260.0f;
 		float btn_h = 70.0f;
 		float btn_x = cx - btn_w / 2.0f;
@@ -742,16 +721,14 @@ Game::game_draw() {
 			int bw = al_get_bitmap_width(start_button);
 			int bh = al_get_bitmap_height(start_button);
 
-			// 把 1307x416 的圖縮放到 260x70，貼在原本按鈕位置
 			al_draw_scaled_bitmap(
 				start_button,
-				0, 0, bw, bh,       // 原圖整張
-				btn_x, btn_y,       // 螢幕位置（左上角）
-				btn_w, btn_h,       // 顯示成 260x70
+				0, 0, bw, bh,
+				btn_x, btn_y,
+				btn_w, btn_h,
 				0
 			);
 		} else {
-			// 萬一圖載不到就退回之前的矩形按鈕
 			al_draw_filled_rounded_rectangle(
 				btn_x, btn_y,
 				btn_x + btn_w, btn_y + btn_h,
@@ -822,9 +799,10 @@ Game::game_draw() {
 		} else if (select_bg) {
 			draw_fullscreen_bitmap(select_bg, DC->window_width, DC->window_height);
 		}
+
 		float cx = DC->window_width / 2.f;
 		float cy = DC->window_height * 0.10f;
-		
+
 		al_draw_text(
 			FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
 			cx, cy,
@@ -870,6 +848,7 @@ Game::game_draw() {
 			cx, cy,
 			ALLEGRO_ALIGN_CENTRE, "ENTER : start game");
 		cy += 25;
+
 		ALLEGRO_COLOR god_text_col = god_mode ? al_map_rgb(0,160,80) : al_map_rgb(140,140,140);
 		al_draw_text(
 			FC->caviar_dreams[FontSize::MEDIUM], god_text_col,
@@ -879,7 +858,6 @@ Game::game_draw() {
 		);
 		cy += 35;
 
-		// 這裡開始統一用 cy 往下排
 		float slider_x1 = DC->window_width * 0.2f;
 		float slider_x2 = DC->window_width * 0.8f;
 
@@ -898,6 +876,7 @@ Game::game_draw() {
 		ui_slider_x1 = slider_x1;
 		ui_slider_x2 = slider_x2;
 		ui_vol_y = vol_y;
+
 		float vol_t = bgm_volume; if(vol_t<0) vol_t=0; if(vol_t>1) vol_t=1;
 		draw_slider(vol_y, vol_t, al_map_rgb(255,255,0), 10);
 		cy += 30;
@@ -914,6 +893,7 @@ Game::game_draw() {
 		float god_y = cy;
 		float god_t = god_mode ? 1.0f : 0.0f;
 		ui_god_y = god_y;
+
 		ALLEGRO_COLOR god_col = god_mode ? al_map_rgb(0,160,80) : al_map_rgb(140,140,140);
 		draw_slider(god_y, god_t, god_col, 12);
 		cy += 30;
@@ -922,14 +902,14 @@ Game::game_draw() {
 					cx, cy, ALLEGRO_ALIGN_CENTRE, god_mode ? "ON" : "OFF");
 		cy += 50;
 
-		// ===== Back =====
 		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
 					cx, cy, ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
 	}
-    else { 
+    else {
         if(background) {
             al_draw_bitmap(background, 0, 0, 0);
         }
+
         if(DC->game_field_length < DC->window_width)
             al_draw_filled_rectangle(
                 DC->game_field_length, 0,
@@ -956,8 +936,6 @@ Game::game_draw() {
         al_identity_transform(&identity);
         al_use_transform(&identity);
 
-        
-
         if(DC->ui && DC->ui->is_open()){
             DC->ui->draw();
         }
@@ -983,11 +961,9 @@ Game::game_draw() {
 			float slider_x2 = DC->window_width * 0.8f;
 			float slider_y  = DC->window_height * 0.7f;
 
-			// 白色音量線
 			al_draw_line(slider_x1, slider_y, slider_x2, slider_y,
 						al_map_rgb(255,255,255), 3);
 
-			// 黃色搖桿位置（依照 bgm_volume）
 			float t = bgm_volume;
 			if (t < 0.0f) t = 0.0f;
 			if (t > 1.0f) t = 1.0f;
@@ -995,7 +971,6 @@ Game::game_draw() {
 
 			al_draw_filled_circle(knob_x, slider_y, 10, al_map_rgb(255,255,0));
 
-			// 說明文字
 			al_draw_text(
 				FC->caviar_dreams[FontSize::SMALL], al_map_rgb(200,200,200),
 				DC->window_width / 2.f, slider_y + 20,
@@ -1006,7 +981,6 @@ Game::game_draw() {
 				DC->window_width / 2.f, DC->window_height * 0.85f,
 				ALLEGRO_ALIGN_CENTRE, "Press P to resume");
 		}
-
     }
 
     al_flip_display();

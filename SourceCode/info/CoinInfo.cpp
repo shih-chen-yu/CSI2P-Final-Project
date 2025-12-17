@@ -8,8 +8,7 @@
 #include "../data/SoundCenter.h"
 
 CoinInfo::CoinInfo(): x(0),y(0),w(150),h(18),padding(12),coin(114514) {}
-constexpr char coin_up_sfx[]   = "./assets/sound/coin.mp3";   
-constexpr char coin_down_sfx[] = "./assets/sound/cashier.mp3"; 
+
 
 void CoinInfo::init(){
     DataCenter* DC = DataCenter::get_instance();
@@ -21,20 +20,7 @@ void CoinInfo::init(){
 }
 
 void CoinInfo::update(int data){
-    SoundCenter* SC = SoundCenter::get_instance();
-
-    if (!first_update) {
-        if (data > prev_coin) {
-            if (SC) SC->play(coin_up_sfx, ALLEGRO_PLAYMODE_ONCE);
-        } else if (data < prev_coin) {
-            if (SC) SC->play(coin_down_sfx, ALLEGRO_PLAYMODE_ONCE);
-        }
-    } else {
-        first_update = false;
-    }
-
-    prev_coin = data;
-    coin = data;
+    coin = data;   // 只更新顯示
 }
 
 void CoinInfo::draw(){

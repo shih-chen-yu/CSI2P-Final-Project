@@ -71,13 +71,13 @@ void Build::draw(){
     float x = shape->center_x() - dst_w / 2 ; // 以 Rectangle 的中心為基準，計算出圖片左上角要畫在哪
     float y = shape->center_y() - dst_h / 2 ;
 
-    al_draw_filled_rectangle( // 先畫 hitbox：半透明方塊
-        x,
-        y,
-        x + dst_w,
-        y + dst_h,
-        al_map_rgba(100, 100, 100, 80)   // 綠色、80 透明度（數字越小越透明）
-    );
+    // al_draw_filled_rectangle( // 先畫 hitbox：半透明方塊
+    //     x,
+    //     y,
+    //     x + dst_w,
+    //     y + dst_h,
+    //     al_map_rgba(100, 100, 100, 80)   // 綠色、80 透明度（數字越小越透明）
+    // );
     al_draw_scaled_bitmap( // 再畫縮放後的建築物圖片，位置與大小和 hitbox 對齊
         pic,
         0, 0, src_w, src_h,   // 原圖來源區域

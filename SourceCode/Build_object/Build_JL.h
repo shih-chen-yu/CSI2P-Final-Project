@@ -1,5 +1,5 @@
-#ifndef BUILD_GL_H_INCLUDED
-#define BUILD_GL_H_INCLUDED
+#ifndef BUILD_JL_H_INCLUDED
+#define BUILD_JL_H_INCLUDED
 
 #include "../object/Build.h"
 #include <string>
