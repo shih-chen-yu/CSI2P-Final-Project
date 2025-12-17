@@ -11,6 +11,8 @@ private:
     float x,y,w,h; // bar rect
     float padding;
     int coin;
+    int prev_coin = 0;
+    bool first_update = true;
 };
 
 #endif

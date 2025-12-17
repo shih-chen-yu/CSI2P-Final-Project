@@ -5,7 +5,7 @@
 #include <string>
 
 class UI;
-
+class DataCenter;
 enum class DeltaFoodKind {
     None,
     Office,  // 系辦剩食
@@ -26,6 +26,7 @@ protected:
     void on_interact() override;
     void child_update() override;
     void child_init() override;
+    
 
 private:
     // 每隔一段時間檢查一次兩種活動
@@ -41,6 +42,7 @@ private:
     DeltaFoodKind pending_kind = DeltaFoodKind::None;
     std::string result_message;  
     int result_timer = 0;        // 顯示多久（frame 或秒）
+    void sync_phone_status(DataCenter* DC);
 };
 
 #endif

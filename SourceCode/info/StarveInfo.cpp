@@ -54,11 +54,6 @@ void StarveInfo::update(int data){
 
     if (new_target > target_progress + 1e-4f) {
         highlight_timer = 0.3f;
-
-        SoundCenter* SC = SoundCenter::get_instance();
-        if (SC) {
-            SC->play("./assets/sound/eat.wav", ALLEGRO_PLAYMODE_ONCE);
-        }
     }
 
     // 更新目標值
@@ -84,13 +79,35 @@ void StarveInfo::update(int data){
 }
 
 void StarveInfo::draw(){
+    DataCenter* DC = DataCenter::get_instance();
+    bool god = (DC && DC->hero && DC->hero->is_god_mode());
     FontCenter* FC = FontCenter::get_instance();
 
     // 背景條（黑色半透明外框）
     al_draw_filled_rectangle(x - 2, y - 2, x + w + 2, y + h + 2, al_map_rgba(0,0,0,160));
     // 底色（灰色）
     al_draw_filled_rectangle(x, y, x + w, y + h, al_map_rgba(80,80,80,200));
+    if (god) {
+        // 固定藍色
+        float r = 0.2f, g = 0.6f, b = 1.0f;
+        ALLEGRO_COLOR col = al_map_rgba_f(r, g, b, 1.0f);
+        al_draw_filled_rectangle(x, y, x + w * progress, y + h, col);
 
+        // 外框照舊
+        al_draw_rectangle(x, y, x + w, y + h, al_map_rgb(255,255,255), 2.0f);
+
+        // 文字改成 ♾
+        if(FC){
+            al_draw_text(
+                FC->caviar_dreams[FontSize::SMALL],
+                al_map_rgb(180, 240, 255),
+                x + w / 2.0f, y + h + 6.0f,
+                ALLEGRO_ALIGN_CENTRE,
+                "Starve: \xE2\x88\x9E"   // UTF-8 無限符號 ∞
+            );
+        }
+        return;
+    }
     // 基本顏色：依 progress 在 green -> yellow -> red 之間變化
     float r = progress < 0.5f ? (1.0f - progress*2.0f) : 0.0f;
     float g = progress < 0.5f ? (progress*2.0f) : (1.0f - (progress-0.5f)*2.0f);

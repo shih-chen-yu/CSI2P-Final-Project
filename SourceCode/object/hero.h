@@ -28,6 +28,8 @@ class HERO : public Object{
         std::pair<float, float> get_position() const {
             return {shape->center_x(), shape->center_y()};
         }
+        void set_god_mode(bool on) { god_mode = on; }
+        bool is_god_mode() const { return god_mode; }
     private:
         HeroState State = HeroState::FRONT;
         double speed = 1.5;
@@ -38,6 +40,7 @@ class HERO : public Object{
         double deposit = 1;
         std::map<HeroState, std::string> gifPath;
         int hero_type_index = 0;
+        bool god_mode = false;
 };
 
 #endif

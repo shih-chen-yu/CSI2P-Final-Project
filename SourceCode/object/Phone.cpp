@@ -147,8 +147,10 @@ void Phone::update() {
     // ===== 換頁按鍵（只在 open 的時候）=====
     if (!open) return;
 
-    bool left_pressed  = (DC->key_state[ALLEGRO_KEY_LEFT]  && !DC->prev_key_state[ALLEGRO_KEY_LEFT]);
-    bool right_pressed = (DC->key_state[ALLEGRO_KEY_RIGHT] && !DC->prev_key_state[ALLEGRO_KEY_RIGHT]);
+    bool left_pressed  = ( (DC->key_state[ALLEGRO_KEY_LEFT] && !DC->prev_key_state[ALLEGRO_KEY_LEFT]) ||
+                       (DC->key_state[ALLEGRO_KEY_A]    && !DC->prev_key_state[ALLEGRO_KEY_A]) );
+    bool right_pressed = ( (DC->key_state[ALLEGRO_KEY_RIGHT] && !DC->prev_key_state[ALLEGRO_KEY_RIGHT]) ||
+                       (DC->key_state[ALLEGRO_KEY_D]     && !DC->prev_key_state[ALLEGRO_KEY_D]) );
 
     if (left_pressed)  current_page--;
     if (right_pressed) current_page++;

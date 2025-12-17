@@ -294,10 +294,14 @@ void Build_delta::update_ui(UI* ui) {
                 // 系辦一定是正常的
                 stamina = BuildDeltaSetting::office_stamina;
                 office_count--;
+                SoundCenter* SC = SoundCenter::get_instance();
+                if (SC) {
+                    SC->play("./assets/sound/eat.wav", ALLEGRO_PLAYMODE_ONCE);
+                }
                 msg_fmt = "你獲得了 %.0f 飽食度！";
             }
             else if (pending_kind == DeltaFoodKind::Camp) {
-                // ⭐ 營隊有機率是過期的
+                //  營隊有機率是過期的
                 float r = std::rand() / (float)RAND_MAX;
                 if (r < BuildDeltaSetting::camp_poison_prob) {
                     // 中毒：倒扣飽食度
@@ -319,6 +323,11 @@ void Build_delta::update_ui(UI* ui) {
                     stamina = BuildDeltaSetting::camp_stamina;
                     msg_fmt = "你獲得了 %.0f 飽食度！";
                     debug_log("Delta: camp leftovers OK.\n");
+                    SoundCenter* SC = SoundCenter::get_instance();
+                    if (SC) {
+                        SC->play("./assets/sound/eat.wav", ALLEGRO_PLAYMODE_ONCE);
+                    }
+                    
                 }
                 camp_count--;
             }
@@ -337,7 +346,34 @@ void Build_delta::update_ui(UI* ui) {
                 result_message = buf;
                 result_timer   = 120; // 顯示約 2 秒
             }
+            if (pending_kind == DeltaFoodKind::Office) {
+                if (office_count <= 0) {
+                    DC->phone->clear_food_status("台達館系辦剩食");
+                } else {
+                    char msg2[64];
+                    sprintf(msg2, "目前剩餘 %d 份，先到先拿！", office_count);
+                    DC->phone->upsert_food_status(
+                        "台達館系辦剩食",
+                        "系辦會議結束，有多的點心可以領取！",
+                        msg2
+                    );
+                }
+            }
+            else if (pending_kind == DeltaFoodKind::Camp) {
+                if (camp_count <= 0) {
+                    DC->phone->clear_food_status("台達館營隊剩食");
+                } else {
+                    char msg2[64];
+                    if (camp_count == 1) sprintf(msg2, "只剩最後 1 份，要搶要快！");
+                    else sprintf(msg2, "目前剩餘 %d 份，先到先拿！", camp_count);
 
+                    DC->phone->upsert_food_status(
+                        "台達館營隊剩食",
+                        "營隊結束，有免費餐盒！",
+                        msg2
+                    );
+                }
+            }
             in_confirm   = false;
             pending_kind = DeltaFoodKind::None;
 
@@ -370,7 +406,7 @@ void Build_delta::child_update() {
             camp_count = std::max(1, 3 - (year / 2));  // 你原本的難度曲線
 
             char msg2[64];
-            if (camp_count == 1) sprintf(msg2, "⚠️ 只剩最後 1 份，要搶要快！");
+            if (camp_count == 1) sprintf(msg2, "只剩最後 1 份，要搶要快！");
             else sprintf(msg2, "目前剩餘 %d 份，先到先拿！", camp_count);
 
             DC->phone->upsert_food_status(
@@ -385,7 +421,7 @@ void Build_delta::child_update() {
     } else {
         // camp_count > 0：保持手機顯示最新剩餘
         char msg2[64];
-        if (camp_count == 1) sprintf(msg2, "⚠️ 只剩最後 1 份，要搶要快！");
+        if (camp_count == 1) sprintf(msg2, "只剩最後 1 份，要搶要快！");
         else sprintf(msg2, "目前剩餘 %d 份，先到先拿！", camp_count);
 
         DC->phone->upsert_food_status(
@@ -402,4 +438,25 @@ void Build_delta::child_init() {
     camp_count  = 0;
     in_confirm       = false;
     pending_kind     = DeltaFoodKind::None;
+}
+
+void Build_delta::sync_phone_status(DataCenter* DC) {
+    if (office_count <= 0) DC->phone->clear_food_status("台達館系辦剩食");
+    else {
+        char msg2[64];
+        sprintf(msg2, "目前剩餘 %d 份，先到先拿！", office_count);
+        DC->phone->upsert_food_status("台達館系辦剩食",
+                                      "系辦會議結束，有多的點心可以領取！",
+                                      msg2);
+    }
+
+    if (camp_count <= 0) DC->phone->clear_food_status("台達館營隊剩食");
+    else {
+        char msg2[64];
+        if (camp_count == 1) sprintf(msg2, "只剩最後 1 份，要搶要快！");
+        else sprintf(msg2, "目前剩餘 %d 份，先到先拿！", camp_count);
+        DC->phone->upsert_food_status("台達館營隊剩食",
+                                      "營隊結束，有免費餐盒！",
+                                      msg2);
+    }
 }

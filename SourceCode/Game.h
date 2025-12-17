@@ -59,6 +59,11 @@ private:
 	
 	bool game_success_sound_played = false;
 	float game_success_timer = 0.0f;
+	bool god_mode = false;
+	 float ui_vol_y = 0.0f;
+    float ui_god_y = 0.0f;
+    float ui_slider_x1 = 0.0f;
+    float ui_slider_x2 = 0.0f;
 };
 
 #endif

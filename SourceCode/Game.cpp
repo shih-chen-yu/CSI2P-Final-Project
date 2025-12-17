@@ -300,7 +300,7 @@ Game::game_update() {
 				debug_log("<Game> state: change to PAUSE\n");
 				state = STATE::PAUSE;
 			}
-            if(DC->hero->get_starve() <= 0.0) {
+            if(!god_mode && DC->hero->get_starve() <= 0.0) {
                 debug_log("<Game> state: change to END (STARVED)\n");
 				hero_starved = true;                 
 				if (bgm_instance) {
@@ -321,43 +321,49 @@ Game::game_update() {
 
 			if(DC->key_state[ALLEGRO_KEY_A] && !DC->prev_key_state[ALLEGRO_KEY_A]) {
 				selected_hero_index--;
-				if(selected_hero_index < 0)
-					selected_hero_index = HERO_TYPE_MAX - 1;
+				if(selected_hero_index < 0) selected_hero_index = HERO_TYPE_MAX - 1;
 			}
 			if(DC->key_state[ALLEGRO_KEY_D] && !DC->prev_key_state[ALLEGRO_KEY_D]) {
 				selected_hero_index++;
-				if(selected_hero_index >= HERO_TYPE_MAX)
-					selected_hero_index = 0;
+				if(selected_hero_index >= HERO_TYPE_MAX) selected_hero_index = 0;
 			}
 
-			float slider_x1 = DC->window_width * 0.2f;
-			float slider_x2 = DC->window_width * 0.8f;
-			float slider_y  = DC->window_height * 0.7f;
-
-			if(DC->mouse_state[1]) {
+			// ✅ 只用 draw 算好的 hitbox（ui_*）
+			if (DC->mouse_state[1]) {
 				int mx = DC->mouse.x;
 				int my = DC->mouse.y;
-				if(mx >= slider_x1 && mx <= slider_x2 &&
-				my >= slider_y - 10 && my <= slider_y + 10) {
 
-					float t = (mx - slider_x1) / (slider_x2 - slider_x1);
+				// volume slider
+				if (mx >= ui_slider_x1 && mx <= ui_slider_x2 &&
+					my >= ui_vol_y - 10 && my <= ui_vol_y + 10) {
+					float t = (mx - ui_slider_x1) / (ui_slider_x2 - ui_slider_x1);
 					if(t < 0.0f) t = 0.0f;
 					if(t > 1.0f) t = 1.0f;
 					bgm_volume = t;
 					if(bgm_instance) SC->set_volume(bgm_instance, bgm_volume);
 				}
+
+				// god slider
+				if (mx >= ui_slider_x1 && mx <= ui_slider_x2 &&
+					my >= ui_god_y - 10 && my <= ui_god_y + 10) {
+					float t = (mx - ui_slider_x1) / (ui_slider_x2 - ui_slider_x1);
+					god_mode = (t > 0.5f);
+				}
 			}
+
+			if (DC->key_state[ALLEGRO_KEY_G] && !DC->prev_key_state[ALLEGRO_KEY_G]) {
+				god_mode = !god_mode;
+			}
+
 			if(DC->key_state[ALLEGRO_KEY_ENTER] && !DC->prev_key_state[ALLEGRO_KEY_ENTER]) {
 				DC->hero->set_type(selected_hero_index);
 				DC->hero->init();
-
+				DC->hero->set_god_mode(god_mode);
 				DC->level->load_level(1);
-				debug_log("<Game> state: change to LEVEL (GameScene)\n");
 				state = STATE::LEVEL;
 			}
 
 			if(DC->key_state[ALLEGRO_KEY_BACKSPACE] && !DC->prev_key_state[ALLEGRO_KEY_BACKSPACE]) {
-				debug_log("<Game> state: back to START\n");
 				state = STATE::START;
 			}
 			break;
@@ -809,10 +815,9 @@ Game::game_draw() {
 		if(select_bg) {
 			al_draw_bitmap(select_bg, 0, 0, 0);
 		}
-
 		float cx = DC->window_width / 2.f;
-		float cy = DC->window_height / 2.f - 120.f;
-
+		float cy = DC->window_height * 0.10f;
+		
 		al_draw_text(
 			FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
 			cx, cy,
@@ -858,30 +863,61 @@ Game::game_draw() {
 			cx, cy,
 			ALLEGRO_ALIGN_CENTRE, "ENTER : start game");
 		cy += 25;
+		ALLEGRO_COLOR god_text_col = god_mode ? al_map_rgb(0,255,120) : al_map_rgb(200,200,200);
+		al_draw_text(
+			FC->caviar_dreams[FontSize::MEDIUM], god_text_col,
+			cx, cy,
+			ALLEGRO_ALIGN_CENTRE,
+			god_mode ? "G : Invincible (ON)" : "G : Invincible (OFF)"
+		);
+		cy += 35;
 
+		// 這裡開始統一用 cy 往下排
 		float slider_x1 = DC->window_width * 0.2f;
 		float slider_x2 = DC->window_width * 0.8f;
-		float slider_y  = DC->window_height * 0.7f;
 
-		al_draw_line(slider_x1, slider_y, slider_x2, slider_y, 
-					al_map_rgb(255,255,255), 3);
+		auto draw_slider = [&](float y, float t, ALLEGRO_COLOR knob_col, float r){
+			al_draw_line(slider_x1, y, slider_x2, y, al_map_rgb(255,255,255), 3);
+			float knob_x = slider_x1 + t * (slider_x2 - slider_x1);
+			al_draw_filled_circle(knob_x, y, r, knob_col);
+		};
 
-		float t = bgm_volume;
-		if(t < 0.0f) t = 0.0f;
-		if(t > 1.0f) t = 1.0f;
-		float knob_x = slider_x1 + t * (slider_x2 - slider_x1);
+		// ===== Volume =====
+		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
+					cx, cy, ALLEGRO_ALIGN_CENTRE, "VOLUME");
+		cy += 28;
 
-		al_draw_filled_circle(knob_x, slider_y, 10, al_map_rgb(255,255,0));
+		float vol_y = cy;
+		ui_slider_x1 = slider_x1;
+		ui_slider_x2 = slider_x2;
+		ui_vol_y = vol_y;
+		float vol_t = bgm_volume; if(vol_t<0) vol_t=0; if(vol_t>1) vol_t=1;
+		draw_slider(vol_y, vol_t, al_map_rgb(255,255,0), 10);
+		cy += 30;
 
-		al_draw_text(
-			FC->caviar_dreams[FontSize::SMALL], al_map_rgb(200,200,200),
-			cx, slider_y + 20,
-			ALLEGRO_ALIGN_CENTRE, "Use mouse drag / ← → to adjust volume");
-		
-		al_draw_text(
-			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
-			cx, DC->window_height * 0.85f,
-			ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
+		al_draw_text(FC->caviar_dreams[FontSize::SMALL], al_map_rgb(200,200,200),
+					cx, cy, ALLEGRO_ALIGN_CENTRE, "Use mouse drag / ← → to adjust volume");
+		cy += 40;
+
+		// ===== Invincible =====
+		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
+					cx, cy, ALLEGRO_ALIGN_CENTRE, "INVINCIBLE MODE");
+		cy += 28;
+
+		float god_y = cy;
+		float god_t = god_mode ? 1.0f : 0.0f;
+		ui_god_y = god_y;
+		ALLEGRO_COLOR god_col = god_mode ? al_map_rgb(0,255,120) : al_map_rgb(200,200,200);
+		draw_slider(god_y, god_t, god_col, 12);
+		cy += 30;
+
+		al_draw_text(FC->caviar_dreams[FontSize::SMALL], god_col,
+					cx, cy, ALLEGRO_ALIGN_CENTRE, god_mode ? "ON" : "OFF");
+		cy += 50;
+
+		// ===== Back =====
+		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+					cx, cy, ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
 	}
     else { 
         if(background) {
@@ -913,9 +949,7 @@ Game::game_draw() {
         al_identity_transform(&identity);
         al_use_transform(&identity);
 
-        DC->starve_info->draw();
-        DC->coin_info->draw();
-		DC->time_info->draw();
+        
 
         if(DC->ui && DC->ui->is_open()){
             DC->ui->draw();
@@ -923,6 +957,10 @@ Game::game_draw() {
         if(DC->phone){
             DC->phone->draw();
         }
+
+		DC->starve_info->draw();
+        DC->coin_info->draw();
+		DC->time_info->draw();
 
         if(state == STATE::PAUSE) {
 			al_draw_filled_rectangle(

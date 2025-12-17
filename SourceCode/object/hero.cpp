@@ -42,10 +42,9 @@ void HERO::init() {
                 gif_postfix[static_cast<int>(type)]);
         gifPath[static_cast<HeroState>(type)] = std::string{buffer};
     }
-
+    DataCenter *DC = DataCenter::get_instance();  
     GIFCenter *GIFC = GIFCenter::get_instance();
     ALGIF_ANIMATION *gif = GIFC->get(gifPath[State]);
-    DataCenter *DC = DataCenter::get_instance();
     shape.reset(new Rectangle{
         DC->window_width / 2 - gif->width / 2,
         DC->window_height / 2 - gif->height / 2,
@@ -58,7 +57,21 @@ void HERO::init() {
 void HERO::draw(){
     GIFCenter* GIFC = GIFCenter::get_instance();
     ALGIF_ANIMATION* gif = GIFC->get(gifPath[State]);
+    DataCenter* DC = DataCenter::get_instance();
+    if (god_mode) {
+        // 角色中心（螢幕座標，因為你 draw() 是世界座標下畫的）
+        float cx = shape->center_x();
+        float cy = shape->center_y();
 
+        // 呼吸光（閃一下）
+        float pulse = 0.5f + 0.5f * std::sin((float)al_get_time() * 6.0f);
+        unsigned char a = (unsigned char)(60 + 80 * pulse);
+
+        // 三層圓當 glow
+        al_draw_filled_circle(cx, cy + 10, 26, al_map_rgba(80, 180, 255, a));
+        al_draw_filled_circle(cx, cy + 10, 18, al_map_rgba(120, 210, 255, a));
+        al_draw_filled_circle(cx, cy + 10, 10, al_map_rgba(180, 240, 255, a));
+    }
     algif_draw_gif(
         gif, 
         shape->center_x() - gif->width / 2,
@@ -81,28 +94,40 @@ void HERO::update(){
         Bullet* b = new Bullet();
         b->init(hx, hy, mx, my);
         DC->bullets.push_back(b);
-        starve -= 1.0; // 射擊會消耗飢餓值
+        if (!god_mode) {
+            starve -= 1.0;
+        }
     }
 
     if(!(DC->ui && DC->ui->is_open())){
         if(DC->key_state[ALLEGRO_KEY_W]){
             shape->update_center_y(shape->center_y() - speed - stamina_extra_speed * (starve / 100.0));
             State = HeroState::BACK;
-            starve -= starve_decrease_rate_walk;
+            if (!god_mode) {
+                starve -= starve_decrease_rate_walk;
+            }
         }else if(DC->key_state[ALLEGRO_KEY_S]){
             shape->update_center_y(shape->center_y() + speed + stamina_extra_speed * (starve / 100.0));
             State = HeroState::FRONT;
-            starve -= starve_decrease_rate_walk;
+            if (!god_mode) {
+                starve -= starve_decrease_rate_walk;
+            }
         }else if(DC->key_state[ALLEGRO_KEY_A]){
             shape->update_center_x(shape->center_x() - speed - stamina_extra_speed * (starve / 100.0));
             State = HeroState::LEFT;
-            starve -= starve_decrease_rate_walk;
+            if (!god_mode) {
+                starve -= starve_decrease_rate_walk;
+            }
         }else if(DC->key_state[ALLEGRO_KEY_D]){
             shape->update_center_x(shape->center_x() + speed + stamina_extra_speed * (starve / 100.0));
             State = HeroState::RIGHT;
-            starve -= starve_decrease_rate_walk;
+            if (!god_mode) {
+                starve -= starve_decrease_rate_walk;
+            }
         }else{
-            starve -= starve_decrease_rate;
+            if (!god_mode) {
+                starve -= starve_decrease_rate_walk;
+            }
         }
     }
 }
