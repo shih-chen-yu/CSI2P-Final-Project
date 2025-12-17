@@ -37,6 +37,8 @@ class Map{
                 {0.8f, 0.3f, BuildKind::Normal2},
                 {1.1f, 0.7f, BuildKind::HUMAN},
                 {0.3f, 0.0f, BuildKind::JL},
+                {0.1f, 0.8f, BuildKind::Normal2},
+                {0.3f, 1.0f, BuildKind::JL},
             };
             // 不在這裡直接 draw(); 讓 game loop 呼叫 draw()
         }

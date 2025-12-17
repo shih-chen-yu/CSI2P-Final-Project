@@ -2,6 +2,7 @@
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
+#include "../data/ImageCenter.h"
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
@@ -17,6 +18,10 @@ namespace BuildASetting{
     int bento_cost = 80;
     double drink_stamina = 20;
     int drink_cost = 50;
+
+    static constexpr const char* img_shop  = "./assets/image/A_ui/restau.jpg";     // 餐廳
+    static constexpr const char* img_drink = "./assets/image/A_ui/drink.jpg";    // 飲料
+    static constexpr const char* img_bento = "./assets/image/A_ui/bento.png";    // 便當
 }
 
 void Build_A::on_interact() {
@@ -121,6 +126,43 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                 "Nothing here now"
             );
             break;
+        }
+    }
+
+    ImageCenter* IC = ImageCenter::get_instance();
+
+    const char* img_path = BuildASetting::img_shop;
+
+    if (StateA == BuildStateA::Food && in_confirm) {
+        // 確認頁：依 pending_item
+        if (pending_item == 1)
+            img_path = BuildASetting::img_drink;
+        else if (pending_item == 2)
+            img_path = BuildASetting::img_bento;
+    }
+
+    ALLEGRO_BITMAP* ui_img = IC->get(img_path);
+    if (ui_img) {
+        float padding_img = 10.0f;
+        float reserve_bottom = 40.0f; // 留給錯誤提示
+
+        float img_x1 = x + padding;
+        float img_x2 = x + w - padding;
+        float img_y1 = y + h * 0.55f;
+        float img_y2 = y + h - reserve_bottom;
+
+        if (img_y2 > img_y1) {
+            int bw = al_get_bitmap_width(ui_img);
+            int bh = al_get_bitmap_height(ui_img);
+
+            al_draw_scaled_bitmap(
+                ui_img,
+                0, 0, bw, bh,
+                img_x1, img_y1,
+                img_x2 - img_x1,
+                img_y2 - img_y1,
+                0
+            );
         }
     }
 }

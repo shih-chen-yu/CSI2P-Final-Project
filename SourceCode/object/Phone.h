@@ -26,7 +26,7 @@ public:
     void toggle() { open = !open; }
 
     void add_notification(std::string building_name, std::string message, std::string content) {
-        FoodInfo info{building_name, message, content, al_get_time(), 8.0};
+        FoodInfo info{building_name, message, content, al_get_time(), 30.0};
         food_infos.push_back(info);
 
         // 收到通知：轉一圈提醒

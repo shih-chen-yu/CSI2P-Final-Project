@@ -2,6 +2,7 @@
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
+#include "../data/ImageCenter.h"
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
@@ -29,6 +30,11 @@ namespace BuildTSMCSetting {
 
     // UI 顯示
     constexpr int    msg_frames     = 120;   // 結果訊息顯示 frame 數
+
+    static constexpr const char* img_normal = "./assets/image/TSMC_ui/TSMC.jpg";
+    static constexpr const char* img_rob    = "./assets/image/TSMC_ui/billgate.jpg";
+    static constexpr const char* img_store  = "./assets/image/TSMC_ui/711.jpg";
+    static constexpr const char* img_amba   = "./assets/image/TSMC_ui/food.jpg";
 }
 
 // ========== 基本互動開關 UI ==========
@@ -190,6 +196,53 @@ void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
             result_message.c_str()
         );
     }
+
+    ImageCenter* IC = ImageCenter::get_instance();
+
+    const char* img_path = BuildTSMCSetting::img_normal; // 預設：主頁正常
+
+    if (in_confirm) {
+        switch (pending_choice) {
+        case TSMCChoice::RobBoss:
+            img_path = BuildTSMCSetting::img_rob;
+            break;
+        case TSMCChoice::Buy711:
+            img_path = BuildTSMCSetting::img_store;
+            break;
+        case TSMCChoice::AMBAFood:
+            img_path = BuildTSMCSetting::img_amba;
+            break;
+        default:
+            img_path = BuildTSMCSetting::img_normal;
+            break;
+        }
+    }
+
+    ALLEGRO_BITMAP* ui_img = IC->get(img_path);
+    if (ui_img) {
+        float img_padding = 10.0f;
+        float reserve_bottom = 60.0f; // 留底部 result_message
+        float img_x1 = x + padding;
+        float img_x2 = x + w - padding;
+
+        // 圖片放 UI 下半部
+        float img_y1 = y + h * 0.55f;
+        float img_y2 = y + h - reserve_bottom;
+
+        if (img_y2 > img_y1) {
+            int bw = al_get_bitmap_width(ui_img);
+            int bh = al_get_bitmap_height(ui_img);
+
+            al_draw_scaled_bitmap(
+                ui_img,
+                0, 0, bw, bh,
+                img_x1, img_y1 + img_padding,
+                (img_x2 - img_x1),
+                (img_y2 - img_y1) - img_padding,
+                0
+            );
+        }
+    }
 }
 
 // ========== UI 邏輯 ==========
@@ -311,13 +364,6 @@ void Build_TSMC::update_ui(UI* ui) {
                     result_message = "錢不夠，7-11 買不起……";
                     result_timer   = BuildTSMCSetting::msg_frames;
 
-                    // 發手機通知
-                    DC->phone->add_notification(
-                        "台積館 7-11",
-                        "購買失敗：餘額不足",
-                        "錢不夠無法購買，先去想辦法賺錢或省一點再來。"
-                    );
-
                     debug_log("TSMC: not enough money for 7-11.\n");
                     break; // 不扣錢、不加飽食、不消耗這次補貨
                 }
@@ -364,9 +410,9 @@ void Build_TSMC::child_update() {
             debug_log("TSMC: AMBA food event TRIGGERED.\n");
 
             DC->phone->add_notification(
-                "台積館 AMBA 剩食",
+                "台積館 有 剩食",
                 "AMBA 課堂結束，有剩下的便當可以領！",
-                "趕快去台積館碰碰運氣。"
+                "如標題。"
             );
         }
     }
@@ -379,9 +425,9 @@ void Build_TSMC::child_update() {
             debug_log("TSMC: Boss event TRIGGERED.\n");
 
             DC->phone->add_notification(
-                "台積館大老闆現身",
-                "聽說有看起來很有錢的大老闆來 AMBA 上課。",
-                "你感覺荷包裡的機會在蠢蠢欲動……"
+                "台積館講座",
+                "今日比爾蓋茲會來台積館演講。",
+                "歡迎各位前往參加"
             );
         }
     }

@@ -2,12 +2,14 @@
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
+#include "../data/ImageCenter.h"
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
 #include "../Utils.h"
 
 #include <allegro5/allegro_font.h>
+#include <allegro5/allegro_image.h>
 #include <cstdlib>
 #include "../data/SoundCenter.h"
 #include "../info/StarveInfo.h"
@@ -23,6 +25,11 @@ namespace BuildDeltaSetting {
     // ⭐ 營隊剩食：有機率是過期的
     constexpr float  camp_poison_prob   = 0.1f; // 壞掉的機率
     constexpr double camp_poison_damage = 40.0;  // 中毒時倒扣 40 飽食度
+
+    constexpr const char* img_none   = "./assets/image/delta_ui/delta.jpg";
+    constexpr const char* img_office = "./assets/image/delta_ui/food.jpg";
+    constexpr const char* img_camp   = "./assets/image/delta_ui/food.jpg";
+    constexpr const char* img_both   = "./assets/image/delta_ui/delta.jpg";
 }
 
 void Build_delta::on_interact() {
@@ -43,6 +50,16 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
 
     float padding = 20.0f;
 
+    enum class DeltaUIPage {
+        NoFood,
+        Select,
+        Confirm
+    };
+    DeltaUIPage page;
+    if (!office_available && !camp_available) page = DeltaUIPage::NoFood;
+    else if (in_confirm)                      page = DeltaUIPage::Confirm;
+    else                                      page = DeltaUIPage::Select;
+
     // ===== 沒任何剩食可領 =====
     if (!office_available && !camp_available) {
         al_draw_text(
@@ -59,7 +76,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
             x + padding,
             y + padding + 40,
             0,
-            "目前台達館沒有剩食可以領取。"
+            "台達館沒有任何事情發生"
         );
 
         // ⭐ 就算沒有剩食，也要顯示剛剛吃完的回饋訊息
@@ -73,6 +90,34 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
                 result_message.c_str()
             );
         }
+        // --- NoFood 頁面的圖片 ---
+        {
+            ImageCenter* IC = ImageCenter::get_instance();
+            const char* img_path = BuildDeltaSetting::img_none; // 你自己新增一張
+            ALLEGRO_BITMAP* ui_img = IC->get(img_path);
+
+            if (ui_img) {
+                float img_padding = 10.0f;
+                float reserve_for_result = 60.0f;
+
+                float img_x1 = x + padding;
+                float img_x2 = x + w - padding;
+                float img_y1 = y + h * 0.55f + img_padding;
+                float img_y2 = y + h - reserve_for_result - img_padding;
+
+                if (img_y2 > img_y1) {
+                    int bw = al_get_bitmap_width(ui_img);
+                    int bh = al_get_bitmap_height(ui_img);
+
+                    al_draw_scaled_bitmap(
+                        ui_img,
+                        0, 0, bw, bh,
+                        img_x1, img_y1, (img_x2 - img_x1), (img_y2 - img_y1),
+                        0
+                    );
+                }
+            }
+        }
         return;
     }
 
@@ -85,7 +130,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
             x + w / 2.0f,
             y + padding,
             ALLEGRO_ALIGN_CENTER,
-            "Delta Hall Free Food"
+            "台達館"
         );
 
         float yy = y + padding + 40;
@@ -118,7 +163,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
                 x + padding,
                 yy + 10,
                 0,
-                "請按 1 或 2 選擇要領取的剩食"
+                "請按 對應數字鍵 選擇要領取的剩食"
             );
         }
         else if (office_available && !camp_available) {
@@ -139,7 +184,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
                 x + padding,
                 yy + 10,
                 0,
-                "按下對應數字鍵選擇"
+                "請按 對應數字鍵 選擇要領取的剩食"
             );
         }
         else if (!office_available && camp_available) {
@@ -160,7 +205,7 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
                 x + padding,
                 yy + 10,
                 0,
-                "按下對應數字鍵選擇"
+                "請按 對應數字鍵 選擇要領取的剩食"
             );
         }
     } else {
@@ -222,6 +267,52 @@ void Build_delta::draw_ui(UI* ui, float x, float y, float w, float h) {
             ALLEGRO_ALIGN_CENTER,
             result_message.c_str()
         );
+    }
+
+
+    ImageCenter* IC = ImageCenter::get_instance();
+
+    // 依「頁面」決定要顯示哪張圖（不是依有沒有食物）
+    const char* img_path = BuildDeltaSetting::img_none;
+
+    // Confirm 頁：可以再依 pending_kind 決定要顯示哪張（更合理）
+    if (in_confirm) {
+        if (pending_kind == DeltaFoodKind::Office)
+            img_path = BuildDeltaSetting::img_office;
+        else if (pending_kind == DeltaFoodKind::Camp)
+            img_path = BuildDeltaSetting::img_camp;
+        else
+            img_path = BuildDeltaSetting::img_none;
+    }
+
+    ALLEGRO_BITMAP* ui_img = IC->get(img_path);
+    if (ui_img) {
+        // 預留底部顯示區：避開最下面的 result_message（你是 y+h-40）
+        float img_padding = 10.0f;
+        float img_h_reserve_for_result = 60.0f; // 給結果訊息留空間
+        float img_top = y + h * 0.55f;          // 圖片從 UI 下半部開始（可調）
+        float img_bottom = y + h - img_h_reserve_for_result;
+
+        float img_x1 = x + padding;
+        float img_x2 = x + w - padding;
+        float img_y1 = img_top + img_padding;
+        float img_y2 = img_bottom - img_padding;
+
+        if (img_y2 > img_y1) {
+            int bw = al_get_bitmap_width(ui_img);
+            int bh = al_get_bitmap_height(ui_img);
+
+            float dst_w = (img_x2 - img_x1);
+            float dst_h = (img_y2 - img_y1);
+
+            // 直接填滿顯示區（想維持比例我也可以再幫你改成 letterbox）
+            al_draw_scaled_bitmap(
+                ui_img,
+                0, 0, bw, bh,
+                img_x1, img_y1, dst_w, dst_h,
+                0
+            );
+        }
     }
 }
 
@@ -367,8 +458,16 @@ void Build_delta::child_update() {
             debug_log("Delta: camp leftovers event TRIGGERED.\n");
             DC->phone->add_notification(
                 "台達館營隊剩食",
-                "電機系營隊結束，有多的餐盒 / 點心可以免費領！",
-                "台達館一樓集合，先到先拿。"
+                "營隊剩下的早餐，一份20",
+                "在台達217外面自取 錢錢自己放在旁邊～自由心證😍😍"
+            );
+        }
+        if(r < BuildDeltaSetting::camp_prob / 2){
+            debug_log("Delta: camp leftovers event TRIGGERED.\n");
+            DC->phone->add_notification(
+                "呂建德",
+                "呂鑫 王晨志 吃午餐了嗎",
+                "現在殺去台達"
             );
         }
     }

@@ -3,6 +3,7 @@
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
+#include "../data/ImageCenter.h"
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
@@ -24,6 +25,11 @@ namespace BuildHumanSetting {
 
     // UI 顯示
     constexpr int    msg_frames       = 120;   // 結果訊息顯示 frame（約 2 秒，60FPS）
+
+    static constexpr const char* img_human_main    = "./assets/image/human_ui/human.jpg";     // 人社院主頁
+    static constexpr const char* img_lecture       = "./assets/image/human_ui/food.jpg";  // 領便當
+    static constexpr const char* img_mcd           = "./assets/image/human_ui/mcdon.jpg";      // 麥當勞
+    static constexpr const char* img_locked        = "./assets/image/human_ui/no_human.jpg";   // 無法進入(冷卻)
 }
 
 void Build_human::on_interact() {
@@ -63,7 +69,7 @@ void Build_human::draw_ui(UI* ui, float x, float y, float w, float h) {
         int remain_sec = (mcd_cooldown_frames + fps - 1) / fps;
 
         char buf[120];
-        sprintf(buf, "你剛買完麥當勞，人社院正在整理場地（約 %d 秒後可再使用）。", remain_sec);
+        sprintf(buf, "你剛買完麥當勞，人社院的學生不歡迎你進來（約 %d 秒後可再使用）。", remain_sec);
 
         al_draw_text(
             font,
@@ -84,6 +90,36 @@ void Build_human::draw_ui(UI* ui, float x, float y, float w, float h) {
                 result_message.c_str()
             );
         }
+        
+
+        // =========================
+        // ⭐ 冷卻中：顯示「無法進入」圖片
+        // =========================
+        ImageCenter* IC = ImageCenter::get_instance();
+        ALLEGRO_BITMAP* ui_img = IC->get(BuildHumanSetting::img_locked);
+
+        if (ui_img) {
+            float img_padding = 10.0f;
+            float reserve_bottom = 60.0f; // 留給底部 result_message
+            float img_x1 = x + padding;
+            float img_x2 = x + w - padding;
+            float img_y1 = y + h * 0.55f;
+            float img_y2 = y + h - reserve_bottom;
+
+            if (img_y2 > img_y1) {
+                int bw = al_get_bitmap_width(ui_img);
+                int bh = al_get_bitmap_height(ui_img);
+                al_draw_scaled_bitmap(
+                    ui_img,
+                    0, 0, bw, bh,
+                    img_x1, img_y1 + img_padding,
+                    (img_x2 - img_x1),
+                    (img_y2 - img_y1) - img_padding,
+                    0
+                );
+            }
+        }
+
         return;
     }
 
@@ -137,7 +173,7 @@ void Build_human::draw_ui(UI* ui, float x, float y, float w, float h) {
     } else {
         // 第二階段：確認畫面
         const char* line1 = nullptr;
-        const char* line2 = "按下 E 確認，ESC 取消";
+        const char* line2 = "按下 E 確認，Q 取消";
 
         switch (pending_choice) {
         case HumanChoice::Lecture:
@@ -181,6 +217,47 @@ void Build_human::draw_ui(UI* ui, float x, float y, float w, float h) {
             ALLEGRO_ALIGN_CENTER,
             result_message.c_str()
         );
+    }
+
+
+    // =========================
+    // ⭐ 正常狀態：依頁面決定圖片
+    // =========================
+    ImageCenter* IC = ImageCenter::get_instance();
+
+    const char* img_path = BuildHumanSetting::img_human_main; // 預設：人社院主頁
+
+    if (in_confirm) {
+        // 確認頁：依 pending_choice 切圖
+        if (pending_choice == HumanChoice::Lecture) {
+            img_path = BuildHumanSetting::img_lecture;  // 領便當
+        } else if (pending_choice == HumanChoice::Mcdonald) {
+            img_path = BuildHumanSetting::img_mcd;      // 麥當勞
+        }
+    }
+
+    ALLEGRO_BITMAP* ui_img = IC->get(img_path);
+    if (ui_img) {
+        float img_padding = 10.0f;
+        float reserve_bottom = 60.0f; // 留給底部結果訊息
+        float img_x1 = x + padding;
+        float img_x2 = x + w - padding;
+        float img_y1 = y + h * 0.55f;
+        float img_y2 = y + h - reserve_bottom;
+
+        if (img_y2 > img_y1) {
+            int bw = al_get_bitmap_width(ui_img);
+            int bh = al_get_bitmap_height(ui_img);
+
+            al_draw_scaled_bitmap(
+                ui_img,
+                0, 0, bw, bh,
+                img_x1, img_y1 + img_padding,
+                (img_x2 - img_x1),
+                (img_y2 - img_y1) - img_padding,
+                0
+            );
+        }
     }
 }
 
@@ -314,7 +391,7 @@ void Build_human::child_update() {
             DC->phone->add_notification(
                 "人社院講座便當",
                 "人社院有講座正在發放免費午餐！",
-                "快去人社院，大概還有便當可以領取。"
+                "人社院正在舉辦文學講座，現場有免費便當可以領取～"
             );
         }
     }

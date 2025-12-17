@@ -2,6 +2,7 @@
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
+#include "../data/ImageCenter.h"
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
@@ -23,6 +24,9 @@ namespace BuildJLSetting {
     constexpr int   prof_cd_s       = 30;     // 任務完成後冷卻秒數
 
     constexpr int   msg_frames      = 120;    // 底部提示顯示多久（frame）
+
+    static constexpr const char* img_main = "./assets/image/JL_ui/JL.jpg";   // 主頁面
+    static constexpr const char* img_prof = "./assets/image/JL_ui/chhuang.jpg";   // 教授任務(確認頁)
 }
 
 void Build_JL::on_interact() {
@@ -149,7 +153,7 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
             x + padding,
             yy + 10.0f,
             0,
-            "有可用選項時請按對應數字（目前最多只會有 1）。"
+            "有可用選項時請按對應數字。"
         );
     } else {
         // ===== 確認畫面 =====
@@ -194,6 +198,40 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
             ALLEGRO_ALIGN_CENTER,
             result_message.c_str()
         );
+    }
+
+    ImageCenter* IC = ImageCenter::get_instance();
+
+    const char* img_path = BuildJLSetting::img_main; // 預設主頁
+
+    if (in_confirm && pending_choice == JLChoice::ProfessorTask) {
+        img_path = BuildJLSetting::img_prof;         // 教授任務確認頁
+    }
+
+    ALLEGRO_BITMAP* ui_img = IC->get(img_path);
+    if (ui_img) {
+        float img_padding = 10.0f;
+        float reserve_bottom = 60.0f; // 留給底部 result_message
+        float img_x1 = x + padding;
+        float img_x2 = x + w - padding;
+
+        // 圖片放在 UI 下半部
+        float img_y1 = y + h * 0.55f;
+        float img_y2 = y + h - reserve_bottom;
+
+        if (img_y2 > img_y1) {
+            int bw = al_get_bitmap_width(ui_img);
+            int bh = al_get_bitmap_height(ui_img);
+
+            al_draw_scaled_bitmap(
+                ui_img,
+                0, 0, bw, bh,
+                img_x1, img_y1 + img_padding,
+                (img_x2 - img_x1),
+                (img_y2 - img_y1) - img_padding,
+                0
+            );
+        }
     }
 }
 
@@ -280,8 +318,8 @@ void Build_JL::child_update() {
                 debug_log("JL: exam failed, penalty will be applied next visit.\n");
                 DC->phone->add_notification(
                     "炯朗館突發考試未出席",
-                    "你沒有在時間內回到炯朗館考試，下次進館會被扣錢。",
-                    "記得之後來一趟炯朗館面對現實。"
+                    "你沒有在時間內回到炯朗館考試，下次來系館記得交重補修費。",
+                    "摳連。"
                 );
             }
         }
@@ -307,7 +345,7 @@ void Build_JL::child_update() {
             DC->phone->add_notification(
                 "炯朗館突發考試通知",
                 "你被通知要到劉炯朗館參加突發小考，請在時限內回到炯朗館。",
-                "不來的話，下次進館會被扣錢。"
+                "沒考試的話會要重補修喔。"
             );
         }
     }
@@ -320,9 +358,9 @@ void Build_JL::child_update() {
             debug_log("JL: professor task spawned.\n");
 
             DC->phone->add_notification(
-                "劉炯朗館教授臨時任務",
-                "有教授臨時需要人幫忙處理雜務。",
-                "到劉炯朗館一趟，也許可以賺點外快。"
+                "徵求法律志工",
+                "黃之浩的實驗室徵求一位了解法律相關知識的志工",
+                "意者請至劉炯朗館找黃之浩教授。"
             );
         }
     }
