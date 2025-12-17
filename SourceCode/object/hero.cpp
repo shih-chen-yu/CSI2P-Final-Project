@@ -81,7 +81,7 @@ void HERO::update(){
         Bullet* b = new Bullet();
         b->init(hx, hy, mx, my);
         DC->bullets.push_back(b);
-        starve -= 1.0; // 射擊會消耗飢餓值
+        starve -= 10.0; // 射擊會消耗飢餓值
     }
 
     if(!(DC->ui && DC->ui->is_open())){

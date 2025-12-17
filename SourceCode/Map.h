@@ -11,6 +11,7 @@
 #include "Build_object/Build_human.h"
 #include "Build_object/Build_TSMC.h"
 #include "Build_object/Build_JL.h"
+#include "Build_object/Build_JL2.h"
 
 enum class BuildKind {
     Normal,   // 原本的建築
@@ -18,7 +19,8 @@ enum class BuildKind {
     DELTA, //台達館
     HUMAN, //人社院
     TSMC,  //台積館
-    JL     //炯朗館
+    JL,    //炯朗館
+    JL2
 };
 
 struct MapBuildInfo {
@@ -38,7 +40,7 @@ class Map{
                 {1.1f, 0.7f, BuildKind::HUMAN},
                 {0.3f, 0.0f, BuildKind::JL},
                 {0.1f, 0.8f, BuildKind::Normal2},
-                {0.3f, 1.0f, BuildKind::JL},
+                {0.3f, 1.0f, BuildKind::JL2},
             };
             // 不在這裡直接 draw(); 讓 game loop 呼叫 draw()
         }
@@ -79,6 +81,8 @@ class Map{
                     return new Build_TSMC();
                 case BuildKind::JL:
                     return new Build_JL();
+                case BuildKind::JL2:
+                    return new Build_JL2();
                 case BuildKind::Normal:
                 default:
                     return new Build();

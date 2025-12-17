@@ -15,6 +15,7 @@ public:
     int  get_level() const;
     void reset(int new_level = 1);
     void set_interval(double sec);
+    void set_level(int new_level);
 
 private:
     double interval_sec;  // 每隔幾秒升級一次

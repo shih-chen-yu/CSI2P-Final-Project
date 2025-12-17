@@ -43,3 +43,7 @@ void LevelTimer::reset(int new_level) {
 void LevelTimer::set_interval(double sec) {
     interval_sec = sec;
 }
+
+void LevelTimer::set_level(int new_level) {
+    level = new_level;
+}

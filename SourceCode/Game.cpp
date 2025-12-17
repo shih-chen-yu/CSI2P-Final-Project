@@ -300,6 +300,13 @@ Game::game_update() {
 				debug_log("<Game> state: change to PAUSE\n");
 				state = STATE::PAUSE;
 			}
+			if(DC->key_state[ALLEGRO_KEY_1] && !DC->prev_key_state[ALLEGRO_KEY_1]) {
+				DC->hero->reduce_deposit(-100);
+			}
+			if(DC->key_state[ALLEGRO_KEY_2] && !DC->prev_key_state[ALLEGRO_KEY_2]) {
+				DC->leveltimer->set_level(DC->leveltimer->get_level() + 1);
+			}
+
             if(DC->hero->get_starve() <= 0.0) {
                 debug_log("<Game> state: change to END (STARVED)\n");
 				hero_starved = true;                 
