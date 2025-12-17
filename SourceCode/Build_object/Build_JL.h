@@ -9,6 +9,7 @@ class UI;
 // 玩家在 UI 裡可以選擇的行為
 enum class JLChoice {
     None,
+    Exam,
     ProfessorTask
 };
 

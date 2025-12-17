@@ -67,44 +67,49 @@ static void clamp_lines_with_ellipsis(ALLEGRO_FONT* font,
     }
     last += ell;
 }
-void Phone::upsert_food_status(const std::string& building_name,
+void Phone::upsert_food_status(const std::string& key,
+                               const std::string& building_name,
                                const std::string& message,
                                const std::string& content)
 {
     double now = al_get_time();
 
-    // 找同 building 的狀態通知：有就更新，沒有就新增
     for (auto &it : food_infos) {
-        if (it.building_name == building_name) {
+        if (it.key == key) {              
+            it.building_name = building_name; 
             it.message = message;
             it.content = content;
-
-            // 讓它不會過期 + 更新時間讓它排在較新
             it.create_time = now;
             it.life_time   = 1e18;
 
-            // 收到更新：轉一圈提醒
             spin_active = true;
             spin_end_time = now + spin_duration;
             return;
         }
     }
 
-    FoodInfo info{building_name, message, content, now, 1e18};
+    FoodInfo info;
+    info.key = key;
+    info.building_name = building_name;
+    info.message = message;
+    info.content = content;
+    info.create_time = now;
+    info.life_time = 1e18;
+
     food_infos.push_back(info);
 
     spin_active = true;
     spin_end_time = now + spin_duration;
 }
 
-void Phone::clear_food_status(const std::string& building_name)
+void Phone::clear_food_status(const std::string& key)
 {
     for (auto it = food_infos.begin(); it != food_infos.end(); ) {
-        if (it->building_name == building_name) it = food_infos.erase(it);
+        if (it->key == key) it = food_infos.erase(it);
         else ++it;
     }
 
-    // 頁碼防呆（避免刪完 current_page 超界）
+    total_pages_cached = std::max(1, total_pages_cached);
     if (current_page < 0) current_page = 0;
     if (current_page > total_pages_cached - 1) current_page = total_pages_cached - 1;
 }
@@ -112,12 +117,36 @@ void Phone::clear_food_status(const std::string& building_name)
 void Phone::init() {
 
 }
-
+void Phone::add_notification(const std::string& key,
+                             const std::string& building_name,
+                             const std::string& message,
+                             const std::string& content)
+{
+    // 直接當作「狀態」通知：有就更新、沒有就新增，而且永久顯示
+     upsert_food_status(key, building_name, message, content);
+}
 void Phone::update() {
     DataCenter* DC = DataCenter::get_instance();
     double now = al_get_time();
 
-    // ===== 清掉過期通知 =====
+    // icon 旋轉動畫仍然可以更新（讓你收到通知會轉）
+    double t = al_get_time();
+    if (spin_active) {
+        double start_time = spin_end_time - spin_duration;
+        double p = (t - start_time) / spin_duration;
+        if (p < 0.0) p = 0.0;
+        if (p > 1.0) p = 1.0;
+        icon_angle = (float)(p * 6.283185307179586);
+        if (t >= spin_end_time) {
+            spin_active = false;
+            icon_angle = 0.0f;
+        }
+    }
+
+    // ✅ 手機沒開：不要讓通知過期（避免你說的「幾秒後不見」）
+    if (!open) return;
+
+    // ===== 清掉過期通知（只在 open 時才清）=====
     for (auto it = food_infos.begin(); it != food_infos.end(); ) {
         double age = now - it->create_time;
         if (it->life_time >= 0.0 && age >= it->life_time)
@@ -126,40 +155,18 @@ void Phone::update() {
             ++it;
     }
 
-    // ===== 更新 icon 旋轉動畫 =====
-    double t = al_get_time();
-    if (spin_active) {
-        // 進度 0~1
-        double start_time = spin_end_time - spin_duration;
-        double p = (t - start_time) / spin_duration;
-        if (p < 0.0) p = 0.0;
-        if (p > 1.0) p = 1.0;
-
-        // 轉一圈：0 -> 2π
-        icon_angle = (float)(p * 6.283185307179586);
-
-        if (t >= spin_end_time) {
-            spin_active = false;
-            icon_angle = 0.0f;
-        }
-    }
-
-    // ===== 換頁按鍵（只在 open 的時候）=====
-    if (!open) return;
-
-    bool left_pressed  = ( (DC->key_state[ALLEGRO_KEY_LEFT] && !DC->prev_key_state[ALLEGRO_KEY_LEFT]) ||
-                       (DC->key_state[ALLEGRO_KEY_A]    && !DC->prev_key_state[ALLEGRO_KEY_A]) );
-    bool right_pressed = ( (DC->key_state[ALLEGRO_KEY_RIGHT] && !DC->prev_key_state[ALLEGRO_KEY_RIGHT]) ||
-                       (DC->key_state[ALLEGRO_KEY_D]     && !DC->prev_key_state[ALLEGRO_KEY_D]) );
+    // ===== 換頁按鍵 =====
+    bool left_pressed  = ((DC->key_state[ALLEGRO_KEY_LEFT] && !DC->prev_key_state[ALLEGRO_KEY_LEFT]) ||
+                          (DC->key_state[ALLEGRO_KEY_A]    && !DC->prev_key_state[ALLEGRO_KEY_A]));
+    bool right_pressed = ((DC->key_state[ALLEGRO_KEY_RIGHT] && !DC->prev_key_state[ALLEGRO_KEY_RIGHT]) ||
+                          (DC->key_state[ALLEGRO_KEY_D]     && !DC->prev_key_state[ALLEGRO_KEY_D]));
 
     if (left_pressed)  current_page--;
     if (right_pressed) current_page++;
 
-    // clamp（total_pages_cached 會在 draw() 重新算）
     if (current_page < 0) current_page = 0;
     if (current_page > total_pages_cached - 1) current_page = total_pages_cached - 1;
 }
-
 void Phone::draw() {
     FontCenter *FC = FontCenter::get_instance();
     ImageCenter* IC = ImageCenter::get_instance();

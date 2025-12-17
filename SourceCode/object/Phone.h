@@ -7,12 +7,13 @@
 #include <allegro5/allegro.h>
 
 struct FoodInfo {
+    std::string key;
     std::string building_name;
     std::string message;
     std::string content;
 
     double create_time = 0.0;
-    double life_time   = -1.0;
+    double life_time   = -1.0; // -1 表示不會過期（或你用 1e18）
 };
 
 class Phone : public Object{
@@ -25,39 +26,43 @@ public:
     void set_open(bool v) { open = v; }
     void toggle() { open = !open; }
 
-    void add_notification(std::string building_name, std::string message, std::string content) {
-        FoodInfo info{building_name, message, content, al_get_time(), 8.0};
-        food_infos.push_back(info);
-
-        // 收到通知：轉一圈提醒
-        spin_active = true;
-        spin_end_time = al_get_time() + spin_duration;
+    void add_notification(const std::string& building_name,
+                        const std::string& message,
+                        const std::string& content)
+    {
+        // key 用 building_name 當 key（或你想要更獨特也行）
+        add_notification(building_name, building_name, message, content);
     }
-    void upsert_food_status(const std::string& building_name,
+    void add_notification(const std::string& key,
+                          const std::string& building_name,
+                          const std::string& message,
+                          const std::string& content);
+
+    void upsert_food_status(const std::string& key,
+                            const std::string& building_name,
                             const std::string& message,
                             const std::string& content);
-
-    void clear_food_status(const std::string& building_name);
+    void upsert_food_status(const std::string& building_name,
+                            const std::string& message,
+                            const std::string& content)
+    {
+        upsert_food_status(building_name, building_name, message, content);
+    }
+    void clear_food_status(const std::string& key);
 
 private:
     bool open = false;
     std::vector<FoodInfo> food_infos;
 
-    // ===== 分頁狀態 =====
     int current_page = 0;
-
-    // 用 draw() 算出來後存著（方便 update() clamp）
     int total_pages_cached = 1;
 
-private:
-    // ===== 右下角小圖示 =====
-    float icon_angle = 0.0f;          // 目前旋轉角度（弧度）
-    double spin_end_time = 0.0;       // 旋轉動畫結束時間（al_get_time() 秒）
-    double spin_duration = 0.4;       // 轉一圈花幾秒（可調）
+    float icon_angle = 0.0f;
+    double spin_end_time = 0.0;
+    double spin_duration = 0.4;
     bool spin_active = false;
 
-    // icon 位置/大小
-    float icon_size = 56.0f;          // 小圖示大小（像素，可調）
+    float icon_size = 56.0f;
 };
 
 #endif

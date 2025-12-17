@@ -30,6 +30,11 @@ namespace BuildTSMCSetting {
     // UI 顯示
     constexpr int    msg_frames     = 120;   // 結果訊息顯示 frame 數
 }
+namespace {
+    constexpr const char* KEY_AMBA  = "台積館 AMBA 剩食";
+    constexpr const char* KEY_BOSS  = "台積館大老闆現身";
+    constexpr const char* KEY_TSMC_711   = "台積館 7-11 補貨";
+}
 
 // ========== 基本互動開關 UI ==========
 void Build_TSMC::on_interact() {
@@ -272,6 +277,7 @@ void Build_TSMC::update_ui(UI* ui) {
             case TSMCChoice::AMBAFood: {
                 hero->add_stamina(BuildTSMCSetting::amba_stamina);
                 amba_food_available = false;
+                DC->phone->clear_food_status(KEY_AMBA);
 
                 char buf[100];
                 sprintf(buf, "你去 AMBA 領到剩食便當，飽食度 +%.0f！",
@@ -300,6 +306,7 @@ void Build_TSMC::update_ui(UI* ui) {
                     result_message = "你被大老闆海扁一頓，飽食度只剩 1 點……";
                 }
                 boss_available = false;
+                DC->phone->clear_food_status(KEY_BOSS);
                 result_timer   = BuildTSMCSetting::msg_frames;
 
                 debug_log("TSMC: Rob boss resolved.\n");
@@ -325,6 +332,7 @@ void Build_TSMC::update_ui(UI* ui) {
                 hero->reduce_deposit(BuildTSMCSetting::store_cost);
                 hero->add_stamina(BuildTSMCSetting::store_stamina);
                 store_food_available = false;
+                DC->phone->clear_food_status(KEY_TSMC_711);
 
                 char buf[120];
                 sprintf(buf, "你在台積館 7-11 買了食物，花費 %d 元，飽食度 +%.0f。",
@@ -363,8 +371,8 @@ void Build_TSMC::child_update() {
             amba_food_available = true;
             debug_log("TSMC: AMBA food event TRIGGERED.\n");
 
-            DC->phone->add_notification(
-                "台積館 AMBA 剩食",
+            DC->phone->upsert_food_status(
+                KEY_AMBA,
                 "AMBA 課堂結束，有剩下的便當可以領！",
                 "趕快去台積館碰碰運氣。"
             );
@@ -378,8 +386,8 @@ void Build_TSMC::child_update() {
             boss_available = true;
             debug_log("TSMC: Boss event TRIGGERED.\n");
 
-            DC->phone->add_notification(
-                "台積館大老闆現身",
+            DC->phone->upsert_food_status(
+                KEY_BOSS,
                 "聽說有看起來很有錢的大老闆來 AMBA 上課。",
                 "你感覺荷包裡的機會在蠢蠢欲動……"
             );
@@ -391,12 +399,11 @@ void Build_TSMC::child_update() {
         float r = std::rand() / (float)RAND_MAX;
         if (r < BuildTSMCSetting::store_prob) {
             store_food_available = true;
-            debug_log("TSMC: 7-11 food event TRIGGERED.\n");
 
-            DC->phone->add_notification(
-                "台積館 7-11 補貨",
-                "台積館 7-11 剛補了一批便當與點心。",
-                "有點餓的話可以去看一下。"
+            DC->phone->upsert_food_status(
+                KEY_TSMC_711,                 // ← 固定 key（用來更新/清除）
+                "台積館 7-11 補貨",            // message（顯示用）
+                "7-11 剛補一批便當與點心，快來買！" // content
             );
         }
     }
