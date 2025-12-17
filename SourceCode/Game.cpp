@@ -56,16 +56,18 @@ namespace {
 }
 
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
-constexpr char game_start_sound_path[] = "./assets/sound/growl.wav";
+constexpr char game_start_sound_path[] = "./assets/sound/growl.mp3";
 constexpr char menu_img_path[]           = "./assets/image/MenuBackground.png";
 constexpr char select_img_path[]         = "./assets/image/SelectBackground.png";
 constexpr char background_img_path[] = "./assets/image/StartBackground.jpg";
 constexpr char start_img_path[] = "./assets/image/start.png";
 constexpr char start_button_img_path[] = "./assets/image/start_button.png";
-constexpr char background_sound_path[] = "./assets/sound/BackgroundMusic.ogg";
+constexpr char background_sound_path[] = "./assets/sound/u3krw-qzk20.wav";
 constexpr char game_over_sound_path[] = "./assets/sound/game-over-38511.mp3";
 constexpr char game_success_sound_path[] = "./assets/sound/gamepass.mp3";
 constexpr char skull_img_path[] = "./assets/image/skull.png";
+constexpr char help_bg_img_path[] = "./assets/image/HelpBackground.png";
+constexpr char ui_bg_img_path[]   = "./assets/image/HelpBackground.png";
 
 void
 Game::execute() {
@@ -185,7 +187,8 @@ Game::game_init() {
 	start_bg = IC->get(start_img_path);
 	start_button = IC->get(start_button_img_path);
 	skull_img = IC->get(skull_img_path); 
-
+	help_bg = IC->get(help_bg_img_path);
+	ui_bg   = IC->get(ui_bg_img_path);
 	DC->level->init();
 	DC->leveltimer->init();
 
@@ -769,9 +772,11 @@ Game::game_draw() {
 		}
 	}
     else if(state == STATE::HELP) {
-        if(menu_bg) {
-            al_draw_bitmap(menu_bg, 0, 0, 0);
-        }
+        if (help_bg) {
+			draw_fullscreen_bitmap(help_bg, DC->window_width, DC->window_height);
+		} else if (menu_bg) {
+			draw_fullscreen_bitmap(menu_bg, DC->window_width, DC->window_height);
+		}
 
         float cx = DC->window_width / 2.f;
         float y  = DC->window_height / 2.f - 120.f;
@@ -801,19 +806,21 @@ Game::game_draw() {
         y += 40;
 
         al_draw_text(
-            FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+            FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
             cx, y,
             ALLEGRO_ALIGN_CENTRE, "ENTER → Go to Select Menu");
         y += 25;
 
         al_draw_text(
-            FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+            FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
             cx, y,
             ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
     }
     else if(state == STATE::UI) {
-		if(select_bg) {
-			al_draw_bitmap(select_bg, 0, 0, 0);
+		if (ui_bg) {
+			draw_fullscreen_bitmap(ui_bg, DC->window_width, DC->window_height);
+		} else if (select_bg) {
+			draw_fullscreen_bitmap(select_bg, DC->window_width, DC->window_height);
 		}
 		float cx = DC->window_width / 2.f;
 		float cy = DC->window_height * 0.10f;
@@ -853,17 +860,17 @@ Game::game_draw() {
 		}
 
 		al_draw_text(
-			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
 			cx, cy,
 			ALLEGRO_ALIGN_CENTRE, "A / D : change hero");
 		cy += 25;
 
 		al_draw_text(
-			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
 			cx, cy,
 			ALLEGRO_ALIGN_CENTRE, "ENTER : start game");
 		cy += 25;
-		ALLEGRO_COLOR god_text_col = god_mode ? al_map_rgb(0,255,120) : al_map_rgb(200,200,200);
+		ALLEGRO_COLOR god_text_col = god_mode ? al_map_rgb(0,160,80) : al_map_rgb(140,140,140);
 		al_draw_text(
 			FC->caviar_dreams[FontSize::MEDIUM], god_text_col,
 			cx, cy,
@@ -895,7 +902,7 @@ Game::game_draw() {
 		draw_slider(vol_y, vol_t, al_map_rgb(255,255,0), 10);
 		cy += 30;
 
-		al_draw_text(FC->caviar_dreams[FontSize::SMALL], al_map_rgb(200,200,200),
+		al_draw_text(FC->caviar_dreams[FontSize::SMALL], al_map_rgb(140,140,140),
 					cx, cy, ALLEGRO_ALIGN_CENTRE, "Use mouse drag / ← → to adjust volume");
 		cy += 40;
 
@@ -907,7 +914,7 @@ Game::game_draw() {
 		float god_y = cy;
 		float god_t = god_mode ? 1.0f : 0.0f;
 		ui_god_y = god_y;
-		ALLEGRO_COLOR god_col = god_mode ? al_map_rgb(0,255,120) : al_map_rgb(200,200,200);
+		ALLEGRO_COLOR god_col = god_mode ? al_map_rgb(0,160,80) : al_map_rgb(140,140,140);
 		draw_slider(god_y, god_t, god_col, 12);
 		cy += 30;
 
@@ -916,7 +923,7 @@ Game::game_draw() {
 		cy += 50;
 
 		// ===== Back =====
-		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(200,200,200),
+		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
 					cx, cy, ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
 	}
     else { 

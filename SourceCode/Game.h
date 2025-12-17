@@ -40,6 +40,8 @@ private:
 	ALLEGRO_BITMAP *start_bg;
     ALLEGRO_BITMAP *menu_bg;      // 主選單背景
     ALLEGRO_BITMAP *select_bg;    // 角色/關卡選擇背景
+	ALLEGRO_BITMAP* help_bg ;
+	ALLEGRO_BITMAP* ui_bg ;
 	ALLEGRO_BITMAP* skull_img;
 	ALLEGRO_BITMAP* start_button;
 
