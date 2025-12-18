@@ -53,7 +53,7 @@ void Build_A::draw_ui(UI* ui, float x, float y, float w, float h) {
                     x + w / 2.0f,
                     y + padding,
                     ALLEGRO_ALIGN_CENTER,
-                    "Shop"
+                    "小吃部"
                 );
 
                 al_draw_text(

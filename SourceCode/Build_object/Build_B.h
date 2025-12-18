@@ -56,7 +56,7 @@ public:
 
 protected:
     const char* sprite_basename() const override {
-        return "building_B";  // ./assets/image/building/shop.png
+        return "building_C";  // ./assets/image/building/shop.png
     }
     void on_interact() override;
     void child_update() override;

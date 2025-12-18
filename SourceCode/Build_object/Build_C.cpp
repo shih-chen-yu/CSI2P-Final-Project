@@ -1,4 +1,4 @@
-#include "Build_B.h"
+#include "Build_C.h"
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
@@ -13,18 +13,20 @@
 #include <cstdlib> // rand
 #include <ctime>   // time
 
-namespace BuildBSetting{
-    double bento_stamina = 50;
-    int bento_cost = 100;
+namespace BuildCSetting{
+    double bento_stamina = 100;
+    int bento_cost = 50;
     double drink_stamina = 40;
-    int drink_cost = 80;
+    int drink_cost = 0;
 
-    static constexpr const char* img_shop  = "./assets/image/A_ui/water.jpg";     // 餐廳
-    static constexpr const char* img_bento = "./assets/image/A_ui/omigiri.jpg";    // 飲料
-    static constexpr const char* img_drink = "./assets/image/A_ui/sandwich.jpg";    // 便當
+    static constexpr const char* img_shop  = "./assets/image/A_ui/bread.jpg";     // 餐廳
+    static constexpr const char* img_bento = "./assets/image/A_ui/monster.jpg";    // 飲料
+    static constexpr const char* img_drink = "./assets/image/A_ui/walter_smile.jpg";    // 便當
 }
 
-void Build_B::on_interact() {
+void Build_C::on_interact() {
+    if (!spawned) return; // ✅ 沒出現不能互動
+
     DataCenter* DC = DataCenter::get_instance();
     if(!DC->ui->is_open()) {
         DC->ui->open(this);   // 打開 UI，並指定 target = 這間商店
@@ -37,7 +39,8 @@ void Build_B::on_interact() {
     }
 }
 
-void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
+void Build_C::draw_ui(UI* ui, float x, float y, float w, float h) {
+    if (!spawned) return; // ✅ 沒出現就不畫 UI（理論上也不會被打開，但保險）
     FontCenter* FC = FontCenter::get_instance();
 
     ALLEGRO_FONT* font = FC->NotoSansCJK[FontSize::SMALL];
@@ -45,7 +48,7 @@ void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
     float padding = 20.0f;
 
     switch(StateA){
-        case BuildStateB::Food:{
+        case BuildStateC::Food:{
             if(!in_confirm){
                 al_draw_text(
                     font,
@@ -53,27 +56,24 @@ void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
                     x + w / 2.0f,
                     y + padding,
                     ALLEGRO_ALIGN_CENTER,
-                    "水漾餐廳"
+                    "神秘的黑市"
                 );
+                al_draw_text(font, al_map_rgb(255,255,255),
+                            x + padding, y + padding + 40, 0,
+                            "-(1) 花費 $50 買冰毒，恢復 100 飽食度");
 
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 255),
-                    x + padding,
-                    y + padding + 40,
-                    0,
-                    "-(1) 花費 $100 買三明治，恢復 50 飽食度"
-                );
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 255),
-                    x + padding,
-                    y + padding + 70,
-                    0,
-                    "-(2) 花費 $80 買飯糰，恢復 40 飽食度"
-                );
+                // 只有魔爪有貨才顯示 (2)
+                if (claw_available) {
+                    al_draw_text(font, al_map_rgb(255,255,255),
+                                x + padding, y + padding + 70, 0,
+                                "-(2) 領取魔爪，恢復 40 飽食度");
+                } else {
+                    al_draw_text(font, al_map_rgb(200,200,200),
+                                x + padding, y + padding + 70, 0,
+                                "（魔爪缺貨）");
+                }
             }else{
-                const char* item_name = (pending_item == 1 ? "三明治" : "飯糰");
+                const char* item_name = (pending_item == 1 ? "冰毒" : "魔爪");
                 al_draw_text(
                     font,
                     al_map_rgb(255, 255, 0),
@@ -115,7 +115,7 @@ void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
             }
             break;
         }
-        case BuildStateB::Nothing:
+        case BuildStateC::Nothing:
         default:{
             al_draw_text(
                 font,
@@ -131,14 +131,14 @@ void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
 
     ImageCenter* IC = ImageCenter::get_instance();
 
-    const char* img_path = BuildBSetting::img_shop;
+    const char* img_path = BuildCSetting::img_shop;
 
-    if (StateA == BuildStateB::Food && in_confirm) {
+    if (StateA == BuildStateC::Food && in_confirm) {
         // 確認頁：依 pending_item
         if (pending_item == 1)
-            img_path = BuildBSetting::img_drink;
+            img_path = BuildCSetting::img_drink;
         else if (pending_item == 2)
-            img_path = BuildBSetting::img_bento;
+            img_path = BuildCSetting::img_bento;
     }
 
     ALLEGRO_BITMAP* ui_img = IC->get(img_path);
@@ -167,10 +167,12 @@ void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
     }
 }
 
-void Build_B::update_ui(UI* ui) {
+void Build_C::update_ui(UI* ui) {
+    if (!spawned) return; // ✅ 沒出現就不處理按鍵
+    
     DataCenter* DC = DataCenter::get_instance();
 
-    if (StateA != BuildStateB::Food) {
+    if (StateA != BuildStateC::Food) {
         // 沒食物時，UI 只能看，不能做事
         return;
     }
@@ -192,13 +194,16 @@ void Build_B::update_ui(UI* ui) {
         // ————————————————
         if (key1_pressed) {
             in_confirm = true;
-            pending_item = 1;
-            debug_log("Shop: choose Drink, go to confirm.\n");
+            pending_item = 1; // 冰毒永遠可買
         }
         else if (key2_pressed) {
-            in_confirm = true;
-            pending_item = 2;
-            debug_log("Shop: choose Bento, go to confirm.\n");
+            if (claw_available) {
+                in_confirm = true;
+                pending_item = 2; // 魔爪
+            } else {
+                ui_message = "魔爪缺貨！";
+                ui_message_timer = 120;
+            }
         }
     }
     else {
@@ -219,32 +224,35 @@ void Build_B::update_ui(UI* ui) {
             double stamina = 0;
             const char* item_name = "";
             
-            if (pending_item == 1) {
-                // Drink
-                cost = BuildBSetting::drink_cost;
-                stamina = BuildBSetting::drink_stamina;
-                item_name = "三明治";
+            if (pending_item == 1) { // 冰毒
+                cost = BuildCSetting::bento_cost;
+                stamina = BuildCSetting::bento_stamina;
+                item_name = "冰毒";
             }
-            else if (pending_item == 2) {
-                // Bento
-                cost = BuildBSetting::bento_cost;
-                stamina = BuildBSetting::bento_stamina;
-                item_name = "飯糰";
+            else if (pending_item == 2) { // 魔爪
+                cost = BuildCSetting::drink_cost;
+                stamina = BuildCSetting::drink_stamina;
+                item_name = "魔爪";
             }
             
             // 檢查是否有足夠的錢
             if (DC->hero->can_afford(cost)) {
-                debug_log("Shop: confirm buy %s.\n", item_name);
                 DC->hero->add_stamina(stamina);
                 DC->hero->reduce_deposit(cost);
                 DC->hero->add_score(10);
-                
-                // 結帳後商品售罄
-                StateA = BuildStateB::Nothing;
+
+                if (pending_item == 2) {
+                    claw_available = false;   // ✅ 魔爪買完就沒了
+                }
+
+                // ✅ 你要不要讓店整間「買一次就沒」？
+                // 如果你希望店還在（冰毒一直都在）→ 不要把 StateA 變 Nothing，也不要關 UI
+                // 下面兩行請刪掉/註解：
+                // StateA = BuildStateC::Nothing;
+                // DC->ui->close();
+
                 in_confirm = false;
                 pending_item = 0;
-                
-                DC->ui->close();
             } else {
                 debug_log("Shop: not enough money to buy %s.\n", item_name);
 
@@ -258,36 +266,67 @@ void Build_B::update_ui(UI* ui) {
     }
 }
 
-void Build_B::child_update(){
+void Build_C::child_update() {
     DataCenter* DC = DataCenter::get_instance();
-    if(StateA == BuildStateB::Nothing){
 
-        if(DC->ui->is_open()) return;
+    // UI 開著時不切狀態，避免出現到一半消失造成怪狀況
+    if (DC->ui->is_open() && DC->ui->get_target() == this) return;
 
-        frames_passed += 1;
-        if(frames_passed < interval_frames) return;
-        frames_passed = 0;
+    // ====== 若目前沒出現：定期 roll 是否出現 ======
+    if (!spawned) {
+        spawn_check_cnt++;
+        if (spawn_check_cnt < spawn_check_frames) return;
+        spawn_check_cnt = 0;
 
         float r = std::rand() / (float)RAND_MAX;
-        if(r < cur_prob){
-            debug_log("Shiao Chi Bu start to sell some lunch\n");
-            // 中獎後機率重設
-            cur_prob = base_prob;
-            StateA = BuildStateB::Food;
-            DC->phone->add_notification(
-                "奇怪的商店",
-                "進貨了一些奇怪的東西",
-                "歡迎各位有興趣過來參考一下"
-            );
-        } else {
-            cur_prob += prob_step;
-            if(cur_prob > max_prob) cur_prob = max_prob;
+        if (r < spawn_prob) {
+            spawned = true;
+            stay_cnt = stay_frames;
+
+            // 出現時可以交易
+            StateA = BuildStateC::Food;
+
+            // ✅ 魔爪刷機率：每次店出現時 roll 一次
+            float rr = std::rand() / (float)RAND_MAX;
+            claw_available = (rr < claw_prob);
         }
-    }else{
-        
+        return;
+    }
+
+    // ====== 若目前出現中：倒數停留時間，到期就消失 ======
+    if (spawned) {
+        if (stay_cnt > 0) {
+            stay_cnt--;
+        }
+
+        if (stay_cnt <= 0) {
+            spawned = false;
+
+            in_confirm = false;
+            pending_item = 0;
+            ui_message.clear();
+            ui_message_timer = 0;
+
+            StateA = BuildStateC::Nothing;
+
+            claw_available = false; // ✅ 消失就清空
+        }
     }
 }
 
-void Build_B::child_init(){
+void Build_C::child_init() {
+    spawned = false;
+    spawn_check_cnt = 0;
+    stay_cnt = 0;
 
-}   
+    StateA = BuildStateC::Nothing;
+    in_confirm = false;
+    pending_item = 0;
+    ui_message.clear();
+    ui_message_timer = 0;
+}
+
+void Build_C::draw() {
+    if (!spawned) return;   // ✅ 沒出現就不畫
+    Build::draw();          // ✅ 出現就照原本建築畫法
+}
