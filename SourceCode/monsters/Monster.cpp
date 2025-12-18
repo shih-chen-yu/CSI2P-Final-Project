@@ -11,6 +11,7 @@
 #include "../Utils.h"
 #include "../object/Build.h"          // Build*
 #include "../Build_object/Build_A.h"  // Build_A*
+#include "../Build_object/Build_B.h"  // Build_B*
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
 #include <cstdlib>
@@ -209,6 +210,7 @@ void Monster::update() {
 
     // ===== 2. 找出所有「有食物，而且還沒被 NPC 盯上」的 Build_A =====
     std::vector<Build_A*> food_buildings;
+    std::vector<Build_B*> www_buildings;
 
     for (Build *b : DC->build) {
         if (!b) continue;
@@ -218,6 +220,16 @@ void Monster::update() {
 
         if (ba->has_food() && !ba->is_targeted()) {
             food_buildings.push_back(ba);
+        }
+    }
+    for (Build *b : DC->build) {
+        if (!b) continue;
+
+        Build_B* ba = dynamic_cast<Build_B*>(b);
+        if (!ba) continue;
+
+        if (ba->has_food() && !ba->is_targeted()) {
+            www_buildings.push_back(ba);
         }
     }
 
@@ -234,17 +246,26 @@ void Monster::update() {
     }
 
     // ===== 2-2. 如果現在沒有目標，試著分配一個新目標 =====
-    if (!target_building) {
+    if (!target_building && !target_building_B) {
         if (!food_buildings.empty()) {
             int idx = std::rand() % static_cast<int>(food_buildings.size());
             target_building = food_buildings[idx];
-
-            // 標記：這棟建築物已經有 NPC 在搶
             target_building->set_targeted(true);
 
+            target_building_B = nullptr;  // ⭐ 互斥
             ai_state = AIState::GO_TO_BUILDING;
             chase_phase = 0;
-        } else {
+        }
+        else if (!www_buildings.empty()) {
+            int idx = std::rand() % static_cast<int>(www_buildings.size());
+            target_building_B = www_buildings[idx];
+            target_building_B->set_targeted(true);
+
+            target_building = nullptr;    // ⭐ 互斥
+            ai_state = AIState::GO_TO_BUILDING;
+            chase_phase = 0;
+        }
+        else {
             ai_state = AIState::WANDER;
         }
     }
@@ -252,9 +273,12 @@ void Monster::update() {
     // ===== 3. 根據 AI 狀態決定移動 =====
     double step = static_cast<double>(v) * MONSTER_SPEED_SCALE / fps;
 
-    if (ai_state == AIState::GO_TO_BUILDING && target_building) {
+    if (ai_state == AIState::GO_TO_BUILDING && (target_building || target_building_B)) {
         // === 正在去搶學餐 ===
-        Point target = target_building->center();
+        // 目標中心：A 或 B
+        Point target;
+        if (target_building)      target = target_building->center();
+        else                      target = target_building_B->center();
 
         double dx = target.x - cx;
         double dy = target.y - cy;
@@ -262,7 +286,6 @@ void Monster::update() {
         const double eps = 1.0;
 
         if (chase_phase == 0) {
-            // Phase 0：調整 X
             if (std::fabs(dx) > eps) {
                 double move = std::min(step, std::fabs(dx));
                 cx += (dx > 0 ? move : -move);
@@ -273,19 +296,23 @@ void Monster::update() {
         }
 
         if (chase_phase == 1) {
-            // Phase 1：調整 Y
             if (std::fabs(dy) > eps) {
                 double move = std::min(step, std::fabs(dy));
                 cy += (dy > 0 ? move : -move);
                 dir = convert_dir(Point{ 0.0, (dy > 0 ? 1.0 : -1.0) });
             } else {
-                // ===== 抵達建築物中心：搶飯！ =====
-                bool got_food = target_building->take_food(1);
-                (void)got_food; // 目前暫時沒用到，可之後拿來加效果
+                // ===== 抵達：搶飯！（A / B 各自處理） =====
+                if (target_building) {
+                    target_building->take_food(1);
+                    target_building->set_targeted(false);
+                    target_building = nullptr;
+                }
+                if (target_building_B) {
+                    target_building_B->take_food(1);
+                    target_building_B->set_targeted(false);
+                    target_building_B = nullptr;
+                }
 
-                // 不管這棟還有沒有剩，先放生，讓別的 NPC 也有機會搶
-                target_building->set_targeted(false);
-                target_building = nullptr;
                 ai_state = AIState::WANDER;
                 chase_phase = 0;
             }
@@ -410,6 +437,11 @@ void Monster::on_hit_by_bullet() {
     if (target_building) {
         target_building->set_targeted(false);
         target_building = nullptr;
+    }
+    // 如果你有鎖定建築，記得解除，避免那棟永遠被 targeted
+    if (target_building_B) {
+        target_building_B->set_targeted(false);
+        target_building_B = nullptr;
     }
 
     // 也可以順便重置 AI

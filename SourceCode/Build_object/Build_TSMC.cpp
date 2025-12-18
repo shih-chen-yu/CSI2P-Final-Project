@@ -21,7 +21,7 @@ namespace BuildTSMCSetting {
     // 大老闆事件
     constexpr float  boss_prob      = 0.10f; // 每次檢查大老闆出現機率
     constexpr float  rob_success_p  = 0.6f;  // 打劫成功機率
-    constexpr int    rob_reward     = 200;   // 成功時賺到的錢
+    constexpr int    rob_reward     = 350;   // 成功時賺到的錢
     constexpr double beaten_starve  = 1.0;   // 失敗後飽食度直接變成 1
 
     // 7-11 食物
@@ -41,8 +41,8 @@ namespace BuildTSMCSetting {
 
 namespace {
     // ✅ merge2 的固定 key（用來 upsert/clear）
-    constexpr const char* KEY_AMBA      = "台積館 AMBA 剩食";
-    constexpr const char* KEY_BOSS      = "台積館大老闆現身";
+    constexpr const char* KEY_AMBA      = "台積館免費便當";
+    constexpr const char* KEY_BOSS      = "校園演講";
     constexpr const char* KEY_TSMC_711  = "台積館 7-11 補貨";
 }
 
@@ -134,7 +134,7 @@ void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
                 x + padding,
                 yy + 10.0f,
                 0,
-                "請按 1 / 2 / 3 選擇條目，之後按 E 確認，ESC 離開"
+                "請按 對應數字鍵 選擇條目，之後按 E 確認，Q 離開"
             );
         }
     } else {
@@ -146,7 +146,7 @@ void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
             line1 = "確定要去 AMBA 領剩食便當嗎？（免費補飽食度）";
             break;
         case TSMCChoice::RobBoss:
-            line1 = "確定要打劫看起來很有錢的大老闆嗎？";
+            line1 = "確定要打劫 比爾蓋茲 嗎？";
             break;
         case TSMCChoice::Buy711:
             line1 = "確定要在台積館 7-11 買食物嗎？";
@@ -160,7 +160,7 @@ void Build_TSMC::draw_ui(UI* ui, float x, float y, float w, float h) {
         yy += 30.0f;
 
         al_draw_text(font, al_map_rgb(200, 200, 200), x + padding, yy, 0,
-            "按下 E 確認，ESC 取消"
+            "按下 E 確認，Q 取消"
         );
     }
 
@@ -319,13 +319,6 @@ void Build_TSMC::update_ui(UI* ui) {
                 if (!hero->can_afford(BuildTSMCSetting::store_cost)) {
                     result_message = "錢不夠，7-11 買不起……";
                     result_timer   = BuildTSMCSetting::msg_frames;
-
-                    // 保留 merge2 的通知（你原本就寫了）
-                    DC->phone->add_notification(
-                        "台積館 7-11",
-                        "購買失敗：餘額不足",
-                        "錢不夠無法購買，先去想辦法賺錢或省一點再來。"
-                    );
                     break;
                 }
 
@@ -371,7 +364,7 @@ void Build_TSMC::child_update() {
             DC->phone->upsert_food_status(
                 KEY_AMBA,
                 "AMBA 課堂結束，有剩下的便當可以領！",
-                "趕快去台積館碰碰運氣。"
+                "意者可以來台積館教室領取免費便當"
             );
         }
     }
@@ -384,8 +377,8 @@ void Build_TSMC::child_update() {
 
             DC->phone->upsert_food_status(
                 KEY_BOSS,
-                "聽說有看起來很有錢的大老闆來 AMBA 上課。",
-                "你感覺荷包裡的機會在蠢蠢欲動……"
+                "比爾蓋茲今日前來清華大學演講",
+                "今日在孫運璿演講廳有比爾蓋茲的演講，歡迎各位前來參加"
             );
         }
     }

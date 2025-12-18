@@ -283,7 +283,7 @@ Game::game_update() {
 
 			// ===== merge1 的 debug 熱鍵（只加這兩個，其它照 merge2）=====
 			if(DC->key_state[ALLEGRO_KEY_C] && !DC->prev_key_state[ALLEGRO_KEY_C]) {
-				DC->hero->reduce_deposit(-100); // +100
+				DC->hero->add_deposit(100); // +100
 			}
 			if(DC->key_state[ALLEGRO_KEY_L] && !DC->prev_key_state[ALLEGRO_KEY_L]) {
 				DC->leveltimer->set_level(DC->leveltimer->get_level() + 1); // 跳關

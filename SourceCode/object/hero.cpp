@@ -126,7 +126,7 @@ void HERO::update() {
         DC->bullets.push_back(b);
 
         if (!god_mode) {
-            starve -= 1.0;
+            starve -= 10.0;
         }
     }
 

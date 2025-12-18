@@ -43,10 +43,11 @@ private:
     double stamina_extra_speed = 1.5;
 
     double starve = 100;
-    double starve_decrease_rate = 0.01;
-    double starve_decrease_rate_walk = 0.05;
+    double starve_decrease_rate = 0.01;      // 每次 update 減少的飢餓值（站著）
+    double starve_decrease_rate_walk = 0.05; // 有走路狀態下 update 減少的飢餓值
 
-    double deposit = 114514;
+    // merge1 的初始值：避免一開局就變成 debug 超大錢
+    double deposit = 50;
 
     int hero_type_index = 0;
     bool god_mode = false;

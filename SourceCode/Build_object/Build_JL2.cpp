@@ -24,7 +24,7 @@ namespace BuildJL2Setting {
     constexpr int   exam_penalty    = 80;     // 缺考扣多少錢
 
     constexpr float prof_prob       = 0.12f;  // 教授任務出現機率
-    constexpr int   prof_reward     = 120;    // 完成任務獎勵多少錢
+    constexpr int   prof_reward     = 190;    // 完成任務獎勵多少錢
     constexpr int   prof_cd_s       = 30;     // 任務完成後冷卻秒數
 
     constexpr int   msg_frames      = 120;    // 底部提示顯示多久（frame）

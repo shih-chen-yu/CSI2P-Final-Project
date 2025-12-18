@@ -1,23 +1,23 @@
-#ifndef BUILDA_H_INCLUDED
-#define BUILDA_H_INCLUDED
+#ifndef BUILDB_H_INCLUDED
+#define BUILDB_H_INCLUDED
 
 #include "../object/Build.h"
 
 class UI;
 
-enum class BuildStateA{
+enum class BuildStateB{
     Nothing,
     Food,
     BuildStateMax
 };
 
-class Build_A : public Build{
+class Build_B : public Build{
 public:
     void draw_ui(UI* ui, float x, float y, float w, float h) override;
     void update_ui(UI* ui) override;
 
-    BuildStateA get_stateA() const { return StateA; }
-    void set_stateA(BuildStateA s) { StateA = s; }
+    BuildStateB get_stateA() const { return StateA; }
+    void set_stateA(BuildStateB s) { StateA = s; }
 
     // ===== 食物相關（之後可以用來做一棟有多份學餐） =====
     int  get_food_amount() const { return food_amount; }
@@ -28,7 +28,7 @@ public:
     // 如果你暫時沒用 food_amount，也可以只看 StateA。
     bool has_food() const {
         if (food_amount > 0) return true;
-        return StateA == BuildStateA::Food;
+        return StateA == BuildStateB::Food;
     }
 
     // NPC 搶飯用：這棟有沒有被某隻 monster 盯上
@@ -41,14 +41,14 @@ public:
             food_amount -= amount;
             if (food_amount <= 0) {
                 food_amount = 0;
-                StateA = BuildStateA::Nothing;
+                StateA = BuildStateB::Nothing;
             }
             return true;
         }
 
         // 沒有追蹤數量時，單純把 Food 狀態清掉
-        if (StateA == BuildStateA::Food) {
-            StateA = BuildStateA::Nothing;
+        if (StateA == BuildStateB::Food) {
+            StateA = BuildStateB::Nothing;
             return true;
         }
         return false;
@@ -56,7 +56,7 @@ public:
 
 protected:
     const char* sprite_basename() const override {
-        return "building_A";  // ./assets/image/building/shop.png
+        return "building_B";  // ./assets/image/building/shop.png
     }
     void on_interact() override;
     void child_update() override;
@@ -71,7 +71,7 @@ private:
     float prob_step = 0.05f;  // 每次沒中，就 +5%
     float max_prob  = 0.8f;   // 機率上限 80%
 
-    BuildStateA StateA = BuildStateA::Nothing;
+    BuildStateB StateA = BuildStateB::Nothing;
 
     // UI 內部「確認購買」的狀態
     bool in_confirm   = false;
