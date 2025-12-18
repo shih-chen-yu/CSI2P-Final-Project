@@ -15,6 +15,7 @@
 #include "../info/StarveInfo.h"
 #include "../info/CoinInfo.h"
 #include "../info/TimeInfo.h"
+#include "../info/ScoreInfo.h"
 
 // fixed settings
 namespace DataSetting {
@@ -51,6 +52,7 @@ DataCenter::DataCenter() {
 	starve_info = new StarveInfo();
 	coin_info = new CoinInfo();
     time_info = new TimeInfo();
+    score_info = new ScoreInfo();
 }
 
 DataCenter::~DataCenter() {

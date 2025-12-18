@@ -321,6 +321,7 @@ void Build_human::update_ui(UI* ui) {
             switch (pending_choice) {
             case HumanChoice::Lecture: {
                 DC->hero->add_stamina(BuildHumanSetting::lecture_stamina);
+                DC->hero->add_score(30);
                 lecture_available = false;
 
                 char buf[80];
@@ -343,6 +344,7 @@ void Build_human::update_ui(UI* ui) {
 
                 DC->hero->reduce_deposit(BuildHumanSetting::mcd_cost);
                 DC->hero->add_stamina(BuildHumanSetting::mcd_stamina);
+                DC->hero->add_score(10);
 
                 int fps = (int)DC->FPS;
                 mcd_cooldown_frames = fps * BuildHumanSetting::mcd_cooldown_sec;

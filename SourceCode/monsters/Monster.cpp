@@ -6,6 +6,7 @@
 #include "../data/DataCenter.h"
 #include "../data/ImageCenter.h"
 #include "../Level.h"
+#include "../LevelTimer.h"
 #include "../shapes/Point.h"
 #include "../shapes/Rectangle.h"
 #include "../Utils.h"
@@ -123,12 +124,13 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
  * @brief 選一個新的亂走方向
  */
 void Monster::choose_random_direction() {
+    DataCenter *DC = DataCenter::get_instance();
     double speed = static_cast<double>(v) * MONSTER_SPEED_SCALE; // v: 像素/秒
 
     int d = std::rand() % 4;
     switch (d) {
         case 0: // 右
-            vx =  speed;
+            vx =  speed + DC->leveltimer->get_level() * 1; // 隨著關卡增加速度
             vy =  0.0;
             break;
         case 1: // 左

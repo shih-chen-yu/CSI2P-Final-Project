@@ -237,6 +237,7 @@ void Build_A::update_ui(UI* ui) {
                 debug_log("Shop: confirm buy %s.\n", item_name);
                 DC->hero->add_stamina(stamina);
                 DC->hero->reduce_deposit(cost);
+                DC->hero->add_score(10);
                 
                 // 結帳後商品售罄
                 StateA = BuildStateA::Nothing;

@@ -282,6 +282,7 @@ void Build_TSMC::update_ui(UI* ui) {
             switch (pending_choice) {
             case TSMCChoice::AMBAFood: {
                 hero->add_stamina(BuildTSMCSetting::amba_stamina);
+                DC->hero->add_score(30);
                 amba_food_available = false;
                 DC->phone->clear_food_status(KEY_AMBA);
 
@@ -298,10 +299,11 @@ void Build_TSMC::update_ui(UI* ui) {
                 float r = std::rand() / (float)RAND_MAX;
                 if (r < BuildTSMCSetting::rob_success_p) {
                     hero->add_deposit(BuildTSMCSetting::rob_reward);
+                    DC->hero->add_score(50);
 
                     char buf[120];
                     std::snprintf(buf, sizeof(buf),
-                        "你成功打劫大老闆，獲得 %d 元！",
+                        "你成功打劫比爾蓋茲，獲得 %d 元！",
                         BuildTSMCSetting::rob_reward
                     );
                     result_message = buf;
@@ -324,6 +326,7 @@ void Build_TSMC::update_ui(UI* ui) {
 
                 hero->reduce_deposit(BuildTSMCSetting::store_cost);
                 hero->add_stamina(BuildTSMCSetting::store_stamina);
+                DC->hero->add_score(10);
                 store_food_available = false;
                 DC->phone->clear_food_status(KEY_TSMC_711);
 

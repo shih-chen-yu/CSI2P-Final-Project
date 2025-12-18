@@ -30,6 +30,8 @@ class HERO : public Object{
         }
         void set_god_mode(bool on) { god_mode = on; }
         bool is_god_mode() const { return god_mode; }
+        int get_score() const { return score; }
+        void add_score(int s) { score += s; }
     private:
         HeroState State = HeroState::FRONT;
         double speed = 1.5;
@@ -38,6 +40,7 @@ class HERO : public Object{
         double starve_decrease_rate = 0.01; // 每次 update 減少的飢餓值
         double starve_decrease_rate_walk = 0.05; // 如果有走路的狀態下 update減少的飢餓值
         double deposit = 50;
+        int score = 0;
         std::map<HeroState, std::string> gifPath;
         int hero_type_index = 0;
         bool god_mode = false;

@@ -20,6 +20,7 @@
 #include "info/StarveInfo.h"
 #include "info/CoinInfo.h"
 #include "info/TimeInfo.h" 
+#include "info/ScoreInfo.h"
 
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
@@ -478,6 +479,7 @@ Game::game_update() {
 
             DC->starve_info->update(DC->hero->get_starve());
             DC->coin_info->update(DC->hero->get_deposit());
+			DC->score_info->update(DC->hero->get_score());
 
             for(auto b : DC->build) if(b) b->update();
         }
@@ -540,6 +542,17 @@ Game::game_draw() {
 			"All levels cleared"
 		);
 
+		int score = DC->hero->get_score();
+		std::string tmp = "Final Score: " + std::to_string(score);
+		ALLEGRO_COLOR sub_col2 = al_map_rgba(200,200,20,(unsigned char)(255*t));
+		al_draw_text(
+			FC->caviar_dreams[FontSize::MEDIUM],
+			sub_col2,
+			cx, cy + 60,
+			ALLEGRO_ALIGN_CENTRE,
+			tmp.c_str()
+		);
+
 		if (t > 0.5f) {
 			float hint_t = (t - 0.5f) / 0.5f;
 			if (hint_t < 0.0f) hint_t = 0.0f;
@@ -549,7 +562,7 @@ Game::game_draw() {
 			al_draw_text(
 				FC->caviar_dreams[FontSize::MEDIUM],
 				hint_col,
-				cx, cy + 80,
+				cx, cy + 140,
 				ALLEGRO_ALIGN_CENTRE,
 				"Press ENTER to exit"
 			);
@@ -662,7 +675,6 @@ Game::game_draw() {
 			ALLEGRO_ALIGN_CENTRE,
 			"GAME OVER"
 		);
-
 		const char* reason_text = hero_starved
 			? "You starved to death..."
 			: "You couldn't survive...";
@@ -946,6 +958,7 @@ Game::game_draw() {
 		DC->starve_info->draw();
         DC->coin_info->draw();
 		DC->time_info->draw();
+		DC->score_info->draw();
 
         if(state == STATE::PAUSE) {
 			al_draw_filled_rectangle(
