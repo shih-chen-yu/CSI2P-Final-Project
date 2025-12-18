@@ -66,7 +66,7 @@ constexpr char start_img_path[]          = "./assets/image/start.png";
 constexpr char start_button_img_path[]   = "./assets/image/start_button.png";
 constexpr char background_sound_path[]   = "./assets/sound/u3krw-qzk20.wav";
 constexpr char game_over_sound_path[]    = "./assets/sound/game-over-38511.mp3";
-constexpr char game_success_sound_path[] = "./assets/sound/gamepass.mp3";
+constexpr char game_success_sound_path[] = "./assets/sound/gamepasss.mp3";
 constexpr char skull_img_path[]          = "./assets/image/skull.png";
 constexpr char help_bg_img_path[]        = "./assets/image/HelpBackground.png";
 constexpr char ui_bg_img_path[]          = "./assets/image/HelpBackground.png";
@@ -539,7 +539,7 @@ Game::game_draw() {
 			sub_col,
 			cx, cy,
 			ALLEGRO_ALIGN_CENTRE,
-			"All levels cleared"
+			"You Successfully Grauated From This Stupid University!"
 		);
 
 		int score = DC->hero->get_score();
@@ -676,8 +676,8 @@ Game::game_draw() {
 			"GAME OVER"
 		);
 		const char* reason_text = hero_starved
-			? "You starved to death..."
-			: "You couldn't survive...";
+			? "You just pass away as like I can't pass my final exam..."
+			: "You just pass away as like I can't pass my final exam...";
 
 		ALLEGRO_COLOR reason_col = al_map_rgba(
 			230, 200, 200,
