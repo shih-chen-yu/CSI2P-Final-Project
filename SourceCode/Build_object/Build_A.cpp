@@ -12,6 +12,150 @@
 
 #include <cstdlib> // rand
 #include <ctime>   // time
+#include "../data/DataCenter.h"
+#include "../object/Phone.h"
+#include <cstdio>
+
+static std::string make_buildA_phone_key(const Build_A* self) {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "BUILD_A_%p", (void*)self);
+    return std::string(buf);
+}
+
+void Build_A::notify_food_spawn() {
+    DataCenter* DC = DataCenter::get_instance();
+    if (!DC || !DC->phone) return;
+
+    if (phone_key.empty())
+        phone_key = make_buildA_phone_key(this);
+
+    char msg[128];
+    std::snprintf(msg, sizeof(msg),
+        "午餐開始販售！目前共有 %d 份",
+        food_amount
+    );
+
+    DC->phone->upsert_food_status(
+        phone_key.c_str(),
+        "小吃部",
+        "午餐已開始販售",
+        msg
+    );
+}
+
+
+void Build_A::notify_food_taken(const char* who) {
+    DataCenter* DC = DataCenter::get_instance();
+    if (!DC || !DC->phone) return;
+
+    if (phone_key.empty())
+        phone_key = make_buildA_phone_key(this);
+
+    // ✅ 如果已經沒食物：顯示售罄（只在真的被拿到0的那次會走到這）
+    if (!has_food()) {
+        DC->phone->upsert_food_status(
+            phone_key.c_str(),
+            "小吃部",
+            "已售罄",
+            "目前沒有剩餘餐點"
+        );
+        return;
+    }
+
+    char title[64];
+    char msg[128];
+    std::snprintf(title, sizeof(title), "%s拿走了一份食物", who);
+    std::snprintf(msg, sizeof(msg), "剩下 %d 份", food_amount);
+
+    DC->phone->upsert_food_status(
+        phone_key.c_str(),
+        "小吃部",
+        title,
+        msg
+    );
+}
+
+
+// 建議：每棟 building 用不同 key（不然多棟會互相覆蓋）
+// 如果你 Build 有 id，可以用 id；沒有就用 this 指標也行（只要同一次執行期間一致）
+void Build_A::sync_phone() {
+    DataCenter* DC = DataCenter::get_instance();
+    if (!DC || !DC->phone) return;
+
+    if (phone_key.empty())
+        phone_key = make_buildA_phone_key(this);
+
+    // 沒食物：顯示售罄
+    if (!has_food()) {
+        DC->phone->upsert_food_status(
+            phone_key.c_str(),
+            "小吃部",
+            "已售罄",
+            "目前沒有剩餘餐點"
+        );
+        return;
+    }
+
+    // 有食物：顯示「正在販售」+ 份數（不是被搶走）
+    char msg[128];
+    std::snprintf(msg, sizeof(msg),
+        "目前剩下 %d 份餐點",
+        food_amount
+    );
+
+    DC->phone->upsert_food_status(
+        phone_key.c_str(),
+        "小吃部",
+        "販售中",
+        msg
+    );
+}
+
+
+bool Build_A::has_food() const {
+    if (food_amount > 0) return true;
+    return StateA == BuildStateA::Food;
+}
+
+void Build_A::set_stateA(BuildStateA s) {
+    StateA = s;
+}
+
+void Build_A::set_food_amount(int n) {
+    food_amount = n;
+
+    if (food_amount <= 0) {
+        food_amount = 0;
+        StateA = BuildStateA::Nothing;
+        sync_phone(); // 售罄
+        return;
+    }
+
+    StateA = BuildStateA::Food;
+    notify_food_spawn(); // ✅ 只在生成時通知一次
+    // 不用再 sync_phone()，spawn 已經 upsert 了
+}
+
+
+bool Build_A::take_food(int amount, const char* who) {
+    if (amount <= 0) return false;
+    if (!has_food()) return false;
+
+    if (food_amount <= 0) food_amount = 1; // fallback（如果你有時只靠 StateA）
+
+    food_amount -= amount;
+    if (food_amount <= 0) {
+        food_amount = 0;
+        StateA = BuildStateA::Nothing;
+        notify_food_taken(who); // 會走到售罄分支
+        return true;
+    }
+
+    StateA = BuildStateA::Food;
+    notify_food_taken(who); // ✅ 只有真的被拿走才通知
+    return true;
+}
+
 
 namespace BuildASetting{
     double bento_stamina = 50;
@@ -238,8 +382,8 @@ void Build_A::update_ui(UI* ui) {
                 DC->hero->add_stamina(stamina);
                 DC->hero->reduce_deposit(cost);
                 
-                // 結帳後商品售罄
-                StateA = BuildStateA::Nothing;
+                
+                take_food(1, "You");  
                 in_confirm = false;
                 pending_item = 0;
                 
@@ -272,7 +416,7 @@ void Build_A::child_update(){
             debug_log("Shiao Chi Bu start to sell some lunch\n");
             // 中獎後機率重設
             cur_prob = base_prob;
-            StateA = BuildStateA::Food;
+            set_food_amount(3); // ✅ 一次出 3 份，NPC/玩家各吃 1 份，不會全清空
             DC->phone->add_notification(
                 "小吃部",
                 "午餐已開始販售",
@@ -288,5 +432,5 @@ void Build_A::child_update(){
 }
 
 void Build_A::child_init(){
-
+    phone_key.clear();
 }   

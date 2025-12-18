@@ -3,31 +3,33 @@
 #include "MonsterCaveMan.h"
 #include "MonsterWolfKnight.h"
 #include "MonsterDemonNinja.h"
+
 #include "../data/DataCenter.h"
 #include "../data/ImageCenter.h"
 #include "../Level.h"
 #include "../shapes/Point.h"
 #include "../shapes/Rectangle.h"
 #include "../Utils.h"
-#include "../object/Build.h"          // Build*
-#include "../Build_object/Build_A.h"  // Build_A*
-#include "../Build_object/Build_B.h"  // Build_B*
+
+#include "../object/Build.h"
+#include "../Build_object/Build_A.h"
+#include "../Build_object/Build_B.h"
+
 #include <allegro5/allegro_primitives.h>
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-constexpr double MONSTER_SPEED_SCALE = 0.5; // 比原本慢 50%，想更慢就再調小
+constexpr double MONSTER_SPEED_SCALE = 0.5;
+
 using namespace std;
 
-// fixed settings
-enum class Dir {
-    UP, DOWN, LEFT, RIGHT
-};
+enum class Dir { UP, DOWN, LEFT, RIGHT };
 
 namespace MonsterSetting {
     static constexpr char monster_imgs_root_path[static_cast<int>(MonsterType::MONSTERTYPE_MAX)][40] = {
@@ -36,66 +38,48 @@ namespace MonsterSetting {
         "./assets/image/monster/WolfKnight",
         "./assets/image/monster/DemonNinja"
     };
-    static constexpr char dir_path_prefix[][10] = {
-        "UP", "DOWN", "LEFT", "RIGHT"
-    };
+    static constexpr char dir_path_prefix[][10] = { "UP", "DOWN", "LEFT", "RIGHT" };
 }
 
-/**
- * @brief Create a Monster* instance by the type.
- */
-Monster *Monster::create_monster(MonsterType type, const vector<Point> &path) {
-    switch(type) {
-        case MonsterType::WOLF: {
-            return new MonsterWolf{path};
-        }
-        case MonsterType::CAVEMAN: {
-            return new MonsterCaveMan{path};
-        }
-        case MonsterType::WOLFKNIGHT: {
-            return new MonsterWolfKnight{path};
-        }
-        case MonsterType::DEMONNIJIA: {
-            return new MonsterDemonNinja{path};
-        }
-        case MonsterType::MONSTERTYPE_MAX: {}
-    }
-    GAME_ASSERT(false, "monster type error.");
-}
-
-/**
- * @brief Given velocity of x and y direction, determine which direction the monster should face.
- */
-Dir convert_dir(const Point &v) {
-    if(v.y < 0 && std::abs(v.y) >= std::abs(v.x))
-        return Dir::UP;
-    if(v.y > 0 && std::abs(v.y) >= std::abs(v.x))
-        return Dir::DOWN;
-    if(v.x < 0 && std::abs(v.x) >= std::abs(v.y))
-        return Dir::LEFT;
-    if(v.x > 0 && std::abs(v.x) >= std::abs(v.y))
-        return Dir::RIGHT;
+static Dir convert_dir(const Point &v) {
+    if (v.y < 0 && std::abs(v.y) >= std::abs(v.x)) return Dir::UP;
+    if (v.y > 0 && std::abs(v.y) >= std::abs(v.x)) return Dir::DOWN;
+    if (v.x < 0 && std::abs(v.x) >= std::abs(v.y)) return Dir::LEFT;
+    if (v.x > 0 && std::abs(v.x) >= std::abs(v.y)) return Dir::RIGHT;
     return Dir::RIGHT;
 }
 
+// ---------------- create ----------------
+Monster *Monster::create_monster(MonsterType type, const vector<Point> &path) {
+    switch(type) {
+        case MonsterType::WOLF:       return new MonsterWolf{path};
+        case MonsterType::CAVEMAN:    return new MonsterCaveMan{path};
+        case MonsterType::WOLFKNIGHT: return new MonsterWolfKnight{path};
+        case MonsterType::DEMONNIJIA: return new MonsterDemonNinja{path};
+        case MonsterType::MONSTERTYPE_MAX: break;
+    }
+    GAME_ASSERT(false, "monster type error.");
+    return nullptr;
+}
+
+// ---------------- ctor ----------------
 Monster::Monster(const vector<Point> &path, MonsterType type) {
     DataCenter *DC = DataCenter::get_instance();
 
     shape.reset(new Rectangle{0, 0, 0, 0});
     this->type = type;
     dir = Dir::RIGHT;
+
     bitmap_img_id = 0;
     bitmap_switch_counter = 0;
-    bitmap_switch_freq = 10;   // 預設值，子類可以覆蓋
+    bitmap_switch_freq = 10;
 
-    // === 出生位置：從 path 前幾個點挑一個，再加一點隨機偏移 ===
+    // spawn near early path nodes
     if(!path.empty()) {
         int range = 6;
         if(static_cast<int>(path.size()) < range) range = static_cast<int>(path.size());
-
         int random_index = rand() % range;
         const Point &grid = path[random_index];
-
         const Rectangle &region = DC->level->grid_to_region(grid);
 
         int pixel_offset_x = (rand() % 30) - 15;
@@ -111,53 +95,33 @@ Monster::Monster(const vector<Point> &path, MonsterType type) {
         spawn_y = shape->center_y();
     }
 
-    // AI 狀態初始化
     ai_state = AIState::WANDER;
     vx = vy = 0.0;
-    wander_timer   = 0.0;
-    target_building = nullptr;   // ★ 現在是 Build_A*
-    chase_phase    = 0;
+    wander_timer = 0.0;
+
+    target_building = nullptr;     // Build_A*
+    target_building_B = nullptr;   // Build_B*
+    chase_phase = 0;
+
+    alive = true;
+    respawn_timer = 0.0;
 }
 
-/**
- * @brief 選一個新的亂走方向
- */
+// ---------------- wander helper ----------------
 void Monster::choose_random_direction() {
-    double speed = static_cast<double>(v) * MONSTER_SPEED_SCALE; // v: 像素/秒
+    double speed = static_cast<double>(v) * MONSTER_SPEED_SCALE;
 
     int d = std::rand() % 4;
     switch (d) {
-        case 0: // 右
-            vx =  speed;
-            vy =  0.0;
-            break;
-        case 1: // 左
-            vx = -speed;
-            vy =  0.0;
-            break;
-        case 2: // 下
-            vx =  0.0;
-            vy =  speed;
-            break;
-        case 3: // 上
-        default:
-            vx =  0.0;
-            vy = -speed;
-            break;
+        case 0: vx =  speed; vy = 0.0;  break;
+        case 1: vx = -speed; vy = 0.0;  break;
+        case 2: vx = 0.0;    vy = speed;break;
+        default:vx = 0.0;    vy =-speed;break;
     }
-
-    // 亂走 1 ~ 3 秒後再換方向
     wander_timer = 1.0 + (static_cast<double>(std::rand()) / RAND_MAX) * 2.0;
 }
 
-/**
- * @details
- * 1. 處理動畫 frame 切換（有做防呆，避免 frame index 爆掉）
- * 2. 判斷是否有任一 Build_A 有食物：
- *    - 有：GO_TO_BUILDING，往那棟建築 center 移動（每棟最多一隻 NPC 盯）
- *    - 沒：WANDER，隨機亂走，碰邊界反彈
- * 3. 更新 hit box 大小
- */
+// ---------------- update ----------------
 void Monster::update() {
     DataCenter *DC = DataCenter::get_instance();
     ImageCenter *IC = ImageCenter::get_instance();
@@ -166,133 +130,114 @@ void Monster::update() {
     double cx = shape->center_x();
     double cy = shape->center_y();
 
-    // ===== 死亡狀態：不更新移動，不畫動畫，只倒數復活 =====
+    // ===== dead state =====
     if (!alive) {
-        respawn_timer -= 1.0 / DC->FPS;
+        respawn_timer -= 1.0 / fps;
         if (respawn_timer <= 0.0) {
             alive = true;
             respawn_timer = 0.0;
 
-            // 回到初始出生點
             shape->update_center_x(spawn_x);
             shape->update_center_y(spawn_y);
 
-            // 重置 AI（讓它像新出生一樣）
             ai_state = AIState::WANDER;
             vx = vy = 0.0;
             wander_timer = 0.0;
-            target_building = nullptr;
             chase_phase = 0;
+
+            target_building = nullptr;
+            target_building_B = nullptr;
         }
-        return; // 很重要：死掉時完全不做原本 update 流程
+        return;
     }
 
-    // 確保每個方向都有一個 vector
-    if (bitmap_img_ids.size() < 4) {
-        bitmap_img_ids.resize(4);
-    }
+    if (bitmap_img_ids.size() < 4) bitmap_img_ids.resize(4);
 
-    // ===== 1. 動畫 frame 切換（用目前 dir）=====
-    int anim_dir_idx = static_cast<int>(dir);
-    auto &anim_frames = bitmap_img_ids[anim_dir_idx];
+    // ===== animation tick (by current dir) =====
+    {
+        int anim_dir_idx = static_cast<int>(dir);
+        auto &anim_frames = bitmap_img_ids[anim_dir_idx];
 
-    if (!anim_frames.empty()) {
-        if (bitmap_switch_counter > 0) {
-            --bitmap_switch_counter;
+        if (!anim_frames.empty()) {
+            if (bitmap_switch_counter > 0) --bitmap_switch_counter;
+            else {
+                bitmap_img_id = (bitmap_img_id + 1) % static_cast<int>(anim_frames.size());
+                bitmap_switch_counter = bitmap_switch_freq;
+            }
         } else {
-            bitmap_img_id = (bitmap_img_id + 1) % static_cast<int>(anim_frames.size());
+            bitmap_img_id = 0;
             bitmap_switch_counter = bitmap_switch_freq;
         }
-    } else {
-        bitmap_img_id = 0;
-        bitmap_switch_counter = bitmap_switch_freq;
     }
 
-    // ===== 2. 找出所有「有食物，而且還沒被 NPC 盯上」的 Build_A =====
-    std::vector<Build_A*> food_buildings;
-    std::vector<Build_B*> www_buildings;
+    // ===== build lists: available targets (has_food && not targeted) =====
+    std::vector<Build_A*> foodA;
+    std::vector<Build_B*> foodB;
 
     for (Build *b : DC->build) {
         if (!b) continue;
 
-        Build_A* ba = dynamic_cast<Build_A*>(b);
-        if (!ba) continue;
-
-        if (ba->has_food() && !ba->is_targeted()) {
-            food_buildings.push_back(ba);
-        }
-    }
-    for (Build *b : DC->build) {
-        if (!b) continue;
-
-        Build_B* ba = dynamic_cast<Build_B*>(b);
-        if (!ba) continue;
-
-        if (ba->has_food() && !ba->is_targeted()) {
-            www_buildings.push_back(ba);
+        if (auto *ba = dynamic_cast<Build_A*>(b)) {
+            if (ba->has_food() && !ba->is_targeted()) foodA.push_back(ba);
+        } else if (auto *bb = dynamic_cast<Build_B*>(b)) {
+            if (bb->has_food() && !bb->is_targeted()) foodB.push_back(bb);
         }
     }
 
-    // ===== 2-1. 檢查自己原本的目標建築還 OK 嗎 =====
-    if (target_building) {
-        if (target_building->has_food()) {
-            ai_state = AIState::GO_TO_BUILDING;
-        } else {
-            // 食物沒了，這棟不需要被盯
-            target_building->set_targeted(false);
-            target_building = nullptr;
-            ai_state = AIState::WANDER;
-        }
+    // ===== validate current target still has food =====
+    if (target_building && !target_building->has_food()) {
+        target_building->set_targeted(false);
+        target_building = nullptr;
+    }
+    if (target_building_B && !target_building_B->has_food()) {
+        target_building_B->set_targeted(false);
+        target_building_B = nullptr;
     }
 
-    // ===== 2-2. 如果現在沒有目標，試著分配一個新目標 =====
+    // if still has a target => GO
+    if (target_building || target_building_B) {
+        ai_state = AIState::GO_TO_BUILDING;
+    }
+
+    // ===== if no target, pick one randomly from A/B pools =====
     if (!target_building && !target_building_B) {
-        if (!food_buildings.empty()) {
-            int idx = std::rand() % static_cast<int>(food_buildings.size());
-            target_building = food_buildings[idx];
-            target_building->set_targeted(true);
-
-            target_building_B = nullptr;  // ⭐ 互斥
+        int total = (int)foodA.size() + (int)foodB.size();
+        if (total > 0) {
+            int pick = std::rand() % total;
+            if (pick < (int)foodA.size()) {
+                target_building = foodA[pick];
+                target_building->set_targeted(true);
+                target_building_B = nullptr;
+            } else {
+                pick -= (int)foodA.size();
+                target_building_B = foodB[pick];
+                target_building_B->set_targeted(true);
+                target_building = nullptr;
+            }
             ai_state = AIState::GO_TO_BUILDING;
             chase_phase = 0;
-        }
-        else if (!www_buildings.empty()) {
-            int idx = std::rand() % static_cast<int>(www_buildings.size());
-            target_building_B = www_buildings[idx];
-            target_building_B->set_targeted(true);
-
-            target_building = nullptr;    // ⭐ 互斥
-            ai_state = AIState::GO_TO_BUILDING;
-            chase_phase = 0;
-        }
-        else {
+        } else {
             ai_state = AIState::WANDER;
         }
     }
 
-    // ===== 3. 根據 AI 狀態決定移動 =====
+    // ===== movement =====
     double step = static_cast<double>(v) * MONSTER_SPEED_SCALE / fps;
 
     if (ai_state == AIState::GO_TO_BUILDING && (target_building || target_building_B)) {
-        // === 正在去搶學餐 ===
-        // 目標中心：A 或 B
-        Point target;
-        if (target_building)      target = target_building->center();
-        else                      target = target_building_B->center();
+        Point target = target_building ? target_building->center() : target_building_B->center();
 
         double dx = target.x - cx;
         double dy = target.y - cy;
-
         const double eps = 1.0;
 
+        // axis-by-axis chase
         if (chase_phase == 0) {
             if (std::fabs(dx) > eps) {
                 double move = std::min(step, std::fabs(dx));
                 cx += (dx > 0 ? move : -move);
                 dir = convert_dir(Point{ (dx > 0 ? 1.0 : -1.0), 0.0 });
-            } else {
-                chase_phase = 1;
-            }
+            } else chase_phase = 1;
         }
 
         if (chase_phase == 1) {
@@ -301,7 +246,7 @@ void Monster::update() {
                 cy += (dy > 0 ? move : -move);
                 dir = convert_dir(Point{ 0.0, (dy > 0 ? 1.0 : -1.0) });
             } else {
-                // ===== 抵達：搶飯！（A / B 各自處理） =====
+                // ===== arrived: take ONE food =====
                 if (target_building) {
                     target_building->take_food(1);
                     target_building->set_targeted(false);
@@ -312,26 +257,21 @@ void Monster::update() {
                     target_building_B->set_targeted(false);
                     target_building_B = nullptr;
                 }
-
                 ai_state = AIState::WANDER;
                 chase_phase = 0;
             }
         }
     } else {
-        // ===== 亂走模式 =====
-        if (wander_timer <= 0.0 || (vx == 0.0 && vy == 0.0)) {
-            choose_random_direction();
-        } else {
-            wander_timer -= 1.0 / fps;
-        }
+        // wander
+        if (wander_timer <= 0.0 || (vx == 0.0 && vy == 0.0)) choose_random_direction();
+        else wander_timer -= 1.0 / fps;
 
         cx += vx / fps;
         cy += vy / fps;
 
-        double min_x = 0.0;
-        double max_x = static_cast<double>(DC->game_field_length);
-        double min_y = 0.0;
-        double max_y = static_cast<double>(DC->game_field_length);
+        double min_x = 0.0, min_y = 0.0;
+        double max_x = (double)DC->game_field_length;
+        double max_y = (double)DC->game_field_length;
 
         if (cx < min_x) { cx = min_x; vx = -vx; }
         if (cx > max_x) { cx = max_x; vx = -vx; }
@@ -341,39 +281,35 @@ void Monster::update() {
         dir = convert_dir(Point{vx, vy});
     }
 
-    // 更新中心到 shape
     shape->update_center_x(cx);
     shape->update_center_y(cy);
 
-    // ===== 4. 根據「最新 dir」決定要畫哪個 frame =====
+    // ===== update hitbox from current frame =====
     int dir_idx = static_cast<int>(dir);
     auto &frames2 = bitmap_img_ids[dir_idx];
 
     int frame_id = 0;
     if (!frames2.empty()) {
-        if (bitmap_img_id < 0 || bitmap_img_id >= static_cast<int>(frames2.size())) {
-            bitmap_img_id = 0;
-        }
+        if (bitmap_img_id < 0 || bitmap_img_id >= (int)frames2.size()) bitmap_img_id = 0;
         frame_id = frames2[bitmap_img_id];
     }
 
-    // 安全限制：你的圖只有 _0 ~ _3.png
+    // clamp to 0..3 (avoid _4.png)
     if (frame_id < 0) frame_id = 0;
     if (frame_id > 3) frame_id = 3;
 
     char buffer[128];
-    std::snprintf(
-        buffer, sizeof(buffer), "%s/%s_%d.png",
-        MonsterSetting::monster_imgs_root_path[static_cast<int>(type)],
-        MonsterSetting::dir_path_prefix[dir_idx],
-        frame_id);
+    std::snprintf(buffer, sizeof(buffer), "%s/%s_%d.png",
+                  MonsterSetting::monster_imgs_root_path[(int)type],
+                  MonsterSetting::dir_path_prefix[dir_idx],
+                  frame_id);
 
     ALLEGRO_BITMAP *bitmap = IC->get(buffer);
     if (bitmap) {
         const double &hc = shape->center_x();
         const double &vc = shape->center_y();
-        const int w = static_cast<int>(al_get_bitmap_width(bitmap)  * 0.8);
-        const int h = static_cast<int>(al_get_bitmap_height(bitmap) * 0.8);
+        const int w = (int)(al_get_bitmap_width(bitmap)  * 0.8);
+        const int h = (int)(al_get_bitmap_height(bitmap) * 0.8);
 
         shape.reset(new Rectangle{
             (hc - w / 2.), (vc - h / 2.),
@@ -384,34 +320,26 @@ void Monster::update() {
 
 void Monster::draw() {
     if (!alive) return;
-    
-    ImageCenter *IC = ImageCenter::get_instance();
 
-    if (bitmap_img_ids.size() < 4) {
-        bitmap_img_ids.resize(4);
-    }
+    ImageCenter *IC = ImageCenter::get_instance();
+    if (bitmap_img_ids.size() < 4) bitmap_img_ids.resize(4);
 
     int dir_idx = static_cast<int>(dir);
     auto &frames = bitmap_img_ids[dir_idx];
 
     int frame_id = 0;
     if (!frames.empty()) {
-        if (bitmap_img_id < 0 || bitmap_img_id >= static_cast<int>(frames.size())) {
-            bitmap_img_id = 0;
-        }
+        if (bitmap_img_id < 0 || bitmap_img_id >= (int)frames.size()) bitmap_img_id = 0;
         frame_id = frames[bitmap_img_id];
     }
-
-    // 一樣限制 0~3，避免去讀 _4.png
     if (frame_id < 0) frame_id = 0;
     if (frame_id > 3) frame_id = 3;
 
     char buffer[128];
-    std::snprintf(
-        buffer, sizeof(buffer), "%s/%s_%d.png",
-        MonsterSetting::monster_imgs_root_path[static_cast<int>(type)],
-        MonsterSetting::dir_path_prefix[dir_idx],
-        frame_id);
+    std::snprintf(buffer, sizeof(buffer), "%s/%s_%d.png",
+                  MonsterSetting::monster_imgs_root_path[(int)type],
+                  MonsterSetting::dir_path_prefix[dir_idx],
+                  frame_id);
 
     ALLEGRO_BITMAP *bitmap = IC->get(buffer);
     if (!bitmap) return;
@@ -420,31 +348,29 @@ void Monster::draw() {
         bitmap,
         shape->center_x() - al_get_bitmap_width(bitmap) / 2,
         shape->center_y() - al_get_bitmap_height(bitmap) / 2,
-        0);
+        0
+    );
 }
 
+// ---------------- hit by bullet ----------------
 void Monster::on_hit_by_bullet() {
     if (!alive) return;
 
     alive = false;
-    respawn_timer = 5.0;  // 5 秒
-
-    // 讓它確實不動（雖然 alive=false 時你也不 update 了）
+    respawn_timer = 5.0;
     vx = 0.0;
     vy = 0.0;
 
-    // 如果你有鎖定建築，記得解除，避免那棟永遠被 targeted
+    // IMPORTANT: release targeting
     if (target_building) {
         target_building->set_targeted(false);
         target_building = nullptr;
     }
-    // 如果你有鎖定建築，記得解除，避免那棟永遠被 targeted
     if (target_building_B) {
         target_building_B->set_targeted(false);
         target_building_B = nullptr;
     }
 
-    // 也可以順便重置 AI
     ai_state = AIState::WANDER;
     wander_timer = 0.0;
     chase_phase = 0;
