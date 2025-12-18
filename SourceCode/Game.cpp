@@ -797,19 +797,32 @@ Game::game_draw() {
 		}
 
 		float cx = DC->window_width / 2.f;
-		float cy = DC->window_height * 0.10f;
 
+		// =========================
+		// 1) 固定區塊座標（重點）
+		// =========================
+		float title_y   = DC->window_height * 0.08f;   // 標題固定
+		float preview_y = DC->window_height * 0.16f;   // 英雄預覽固定從這裡開始
+
+		// 設定區(音量/無敵)固定在下半部，不被預覽圖高度影響
+		float panel_y   = DC->window_height * 0.60f;   // 你想更下面就 0.62/0.65
+		float y = panel_y;
+
+		// =========================
+		// Title
+		// =========================
 		al_draw_text(
 			FC->caviar_dreams[FontSize::LARGE], al_map_rgb(255,255,255),
-			cx, cy,
-			ALLEGRO_ALIGN_CENTRE, "SELECT YOUR HERO");
-		cy += 40;
+			cx, title_y,
+			ALLEGRO_ALIGN_CENTRE, "SELECT YOUR HERO"
+		);
 
-		// ===== preview animation (NO need to modify Game.h) =====
+		// =========================
+		// 2) preview animation（你原本那段，保留）
+		// =========================
 		static int preview_frame = 0;
 		static int preview_counter = 0;
 
-		// 若切換角色，重置動畫（避免上一隻的 frame 延續）
 		if (DC->key_state[ALLEGRO_KEY_A] && !DC->prev_key_state[ALLEGRO_KEY_A]) {
 			preview_frame = 0;
 			preview_counter = HERO_PREVIEW_FREQ;
@@ -819,14 +832,16 @@ Game::game_draw() {
 			preview_counter = HERO_PREVIEW_FREQ;
 		}
 
-		// 更新 frame（在 UI 畫面也會動）
 		if (preview_counter > 0) {
 			--preview_counter;
 		} else {
-			preview_frame = (preview_frame + 1) % HERO_PREVIEW_FRAME_COUNT; // 0..3
+			preview_frame = (preview_frame + 1) % HERO_PREVIEW_FRAME_COUNT;
 			preview_counter = HERO_PREVIEW_FREQ;
 		}
 
+		// =========================
+		// 3) Hero preview（只畫在固定區域，不去動下面 y）
+		// =========================
 		{
 			int idx = selected_hero_index;
 			if (idx < 0) idx = 0;
@@ -834,7 +849,6 @@ Game::game_draw() {
 
 			const char* base = HERO_NAMES[idx];
 
-			// ./assets/image/hero/<name>/FRONT_<frame>.png
 			char img_path[256];
 			std::snprintf(img_path, sizeof(img_path), "%s/%s/%s_%d.png",
 				HERO_PREVIEW_ROOT, base, HERO_DIR_PREFIX, preview_frame);
@@ -842,13 +856,15 @@ Game::game_draw() {
 			ImageCenter* IC = ImageCenter::get_instance();
 			ALLEGRO_BITMAP* bmp = IC->get(img_path);
 
+			float text_y = preview_y;  // 只在預覽區內用，不影響 panel y
+
 			if (bmp) {
 				int bw = al_get_bitmap_width(bmp);
 				int bh = al_get_bitmap_height(bmp);
 
+				float max_w = DC->window_width  * 0.35f;
+				float max_h = DC->window_height * 0.30f; // ⭐限制預覽最大高度，避免太大
 				float scale = 1.0f;
-				float max_w = DC->window_width * 0.35f;
-				float max_h = DC->window_height * 0.35f;
 				if (bw > 0 && bh > 0) {
 					float sx = max_w / bw;
 					float sy = max_h / bh;
@@ -857,8 +873,9 @@ Game::game_draw() {
 
 				float draw_w = bw * scale;
 				float draw_h = bh * scale;
+
 				float hero_x = cx - draw_w / 2.0f;
-				float hero_y = cy;
+				float hero_y = preview_y;
 
 				al_draw_scaled_bitmap(
 					bmp,
@@ -868,95 +885,90 @@ Game::game_draw() {
 					0
 				);
 
-				cy += draw_h + 20;
+				text_y = hero_y + draw_h + 10.0f;
 
 				al_draw_text(
 					FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,0),
-					cx, cy,
-					ALLEGRO_ALIGN_CENTRE, base);
-				cy += 30;
+					cx, text_y,
+					ALLEGRO_ALIGN_CENTRE, base
+				);
 			} else {
 				al_draw_text(
 					FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,120,120),
-					cx, cy,
-					ALLEGRO_ALIGN_CENTRE, "Preview missing");
-				cy += 30;
-
+					cx, preview_y,
+					ALLEGRO_ALIGN_CENTRE, "Preview missing"
+				);
 				al_draw_text(
 					FC->caviar_dreams[FontSize::SMALL], al_map_rgb(180,180,180),
-					cx, cy,
-					ALLEGRO_ALIGN_CENTRE, base);
-				cy += 25;
+					cx, preview_y + 28,
+					ALLEGRO_ALIGN_CENTRE, base
+				);
 			}
 		}
 
+		// =========================
+		// 4) 操作提示（也固定，不吃 preview 的高度）
+		// =========================
 		al_draw_text(
 			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
-			cx, cy,
-			ALLEGRO_ALIGN_CENTRE, "A / D : change hero");
-		cy += 25;
-
-		al_draw_text(
-			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
-			cx, cy,
-			ALLEGRO_ALIGN_CENTRE, "ENTER : start game");
-		cy += 25;
-
-		ALLEGRO_COLOR god_text_col = god_mode ? al_map_rgb(0,160,80) : al_map_rgb(140,140,140);
-		al_draw_text(
-			FC->caviar_dreams[FontSize::MEDIUM], god_text_col,
-			cx, cy,
-			ALLEGRO_ALIGN_CENTRE,
-			god_mode ? "G : Invincible (ON)" : "G : Invincible (OFF)"
+			cx, panel_y - 80,
+			ALLEGRO_ALIGN_CENTRE, "A / D : change hero"
 		);
-		cy += 35;
+		al_draw_text(
+			FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
+			cx, panel_y - 55,
+			ALLEGRO_ALIGN_CENTRE, "ENTER : start game"
+		);
 
+		// =========================
+		// 5) Volume / God Mode（固定在 panel_y 起點）
+		// =========================
 		float slider_x1 = DC->window_width * 0.2f;
 		float slider_x2 = DC->window_width * 0.8f;
 
-		auto draw_slider = [&](float y, float t, ALLEGRO_COLOR knob_col, float r){
-			al_draw_line(slider_x1, y, slider_x2, y, al_map_rgb(255,255,255), 3);
+		auto draw_slider = [&](float yy, float t, ALLEGRO_COLOR knob_col, float r){
+			al_draw_line(slider_x1, yy, slider_x2, yy, al_map_rgb(255,255,255), 3);
 			float knob_x = slider_x1 + t * (slider_x2 - slider_x1);
-			al_draw_filled_circle(knob_x, y, r, knob_col);
+			al_draw_filled_circle(knob_x, yy, r, knob_col);
 		};
 
-		// ===== Volume =====
+		// --- Volume ---
 		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
-					cx, cy, ALLEGRO_ALIGN_CENTRE, "VOLUME");
-		cy += 28;
+					cx, y, ALLEGRO_ALIGN_CENTRE, "VOLUME");
+		y += 28;
 
-		float vol_y = cy;
+		float vol_y = y;
 		ui_slider_x1 = slider_x1;
 		ui_slider_x2 = slider_x2;
 		ui_vol_y = vol_y;
 
 		float vol_t = bgm_volume; if(vol_t<0) vol_t=0; if(vol_t>1) vol_t=1;
 		draw_slider(vol_y, vol_t, al_map_rgb(255,255,0), 10);
-		cy += 30;
+		y += 30;
 
 		al_draw_text(FC->caviar_dreams[FontSize::SMALL], al_map_rgb(140,140,140),
-					cx, cy, ALLEGRO_ALIGN_CENTRE, "Use mouse drag / ← → to adjust volume");
-		cy += 40;
+					cx, y, ALLEGRO_ALIGN_CENTRE, "Use mouse drag / ← → to adjust volume");
+		y += 40;
 
-		// ===== Invincible =====
+		// --- Invincible ---
 		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,255),
-					cx, cy, ALLEGRO_ALIGN_CENTRE, "INVINCIBLE MODE");
-		cy += 28;
+					cx, y, ALLEGRO_ALIGN_CENTRE, "INVINCIBLE MODE");
+		y += 28;
 
-		float god_y = cy;
-		float god_t = god_mode ? 1.0f : 0.0f;
+		float god_y = y;
 		ui_god_y = god_y;
 
+		float god_t = god_mode ? 1.0f : 0.0f;
 		ALLEGRO_COLOR god_col = god_mode ? al_map_rgb(0,160,80) : al_map_rgb(140,140,140);
 		draw_slider(god_y, god_t, god_col, 12);
-		cy += 30;
+		y += 30;
 
 		al_draw_text(FC->caviar_dreams[FontSize::SMALL], god_col,
-					cx, cy, ALLEGRO_ALIGN_CENTRE, god_mode ? "ON" : "OFF");
-		cy += 50;
+					cx, y, ALLEGRO_ALIGN_CENTRE, god_mode ? "ON" : "OFF");
+		y += 45;
 
 		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
-					cx, cy, ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
+					cx, y, ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
 	}else {
         if(background) {
             draw_fullscreen_bitmap(background, DC->window_width, DC->window_height);
@@ -980,9 +992,10 @@ Game::game_draw() {
         al_use_transform(&camera);
 
         OC->draw();
+		DC->level->draw();
         DC->map->draw();
         DC->hero->draw();
-		DC->level->draw();
+		
 
         ALLEGRO_TRANSFORM identity;
         al_identity_transform(&identity);

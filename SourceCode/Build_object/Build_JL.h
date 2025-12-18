@@ -15,6 +15,14 @@ enum class JLChoice {
 
 class Build_JL : public Build {
 public:
+    // ===== Phone 通知用：內部識別 key（不要拿來顯示給玩家看）=====
+    static constexpr const char* PHONE_KEY_EXAM = "JL_EXAM";
+    static constexpr const char* PHONE_KEY_TASK = "JL_TASK";
+
+    // ===== 顯示給玩家看的名稱（UI / 通知標題建議用這個）=====
+    static constexpr const char* PHONE_APP_NAME = "劉炯朗館";
+
+public:
     void draw_ui(UI* ui, float x, float y, float w, float h) override;
     void update_ui(UI* ui) override;
 
@@ -37,17 +45,17 @@ private:
     int         result_timer   = 0;       // 剩餘顯示 frame 數
 
     // ===== 隨機事件控制 =====
-    int  frames_passed   = 0;            // 用來每隔一段時間 roll 一次事件
-    int  interval_frames = 60 * 5;       // 約每 5 秒 roll 一次（60FPS 假設）
+    int  frames_passed   = 0;             // 用來每隔一段時間 roll 一次事件
+    int  interval_frames = 60 * 5;        // 約每 5 秒 roll 一次（假設 60FPS）
 
     // ----- 突發考試相關 -----
-    bool exam_active          = false;   // 是否有一個正在倒數的突發考試
-    int  exam_remain_frames   = 0;       // 考試剩餘時間（frame）
-    bool exam_penalty_pending = false;   // 是否尚未結算的「缺考扣錢」懲罰
+    bool exam_active          = false;    // 是否有正在倒數的突發考試
+    int  exam_remain_frames   = 0;        // 考試剩餘時間（frame）
+    bool exam_penalty_pending = false;    // 是否尚未結算的「缺考扣錢」懲罰
 
     // ----- 教授任務相關 -----
     bool professor_task_available = false; // 是否目前有任務可以接
-    int  professor_task_cooldown  = 0;     // 任務完成後的冷卻（frame）
+    int  professor_task_cooldown  = 0;     // 任務完成後冷卻（frame）
 };
 
 #endif

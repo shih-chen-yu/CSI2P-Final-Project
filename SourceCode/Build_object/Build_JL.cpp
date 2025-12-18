@@ -2,7 +2,7 @@
 
 #include "../data/DataCenter.h"
 #include "../data/FontCenter.h"
-#include "../data/ImageCenter.h"   // ✅ merge1 圖片用
+#include "../data/ImageCenter.h"
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
@@ -11,25 +11,20 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro5.h>
 #include <cstdlib>
-#include <cstdio>                 // ✅ snprintf
-
-static constexpr const char* KEY_JL_EXAM = "JL_EXAM";
-static constexpr const char* KEY_JL_TASK = "JL_TASK";
+#include <cstdio>
 
 // ========= 可調整參數 =========
 namespace BuildJLSetting {
-    // 每隔 interval_frames roll 一次
     constexpr float exam_prob       = 0.10f;  // 突發考試機率
     constexpr int   exam_duration_s = 20;     // 要在幾秒內回到炯朗館
     constexpr int   exam_penalty    = 80;     // 缺考扣多少錢
 
     constexpr float prof_prob       = 0.12f;  // 教授任務出現機率
-    constexpr int   prof_reward     = 10;    // 完成任務獎勵多少錢
+    constexpr int   prof_reward     = 10;     // 完成任務獎勵多少錢
     constexpr int   prof_cd_s       = 30;     // 任務完成後冷卻秒數
 
     constexpr int   msg_frames      = 120;    // 底部提示顯示多久（frame）
 
-    // ✅ merge1 的圖片資源路徑加回來
     static constexpr const char* img_main = "./assets/image/JL_ui/JL.jpg";
     static constexpr const char* img_prof = "./assets/image/JL_ui/chhuang.jpg";
 }
@@ -37,14 +32,13 @@ namespace BuildJLSetting {
 void Build_JL::on_interact() {
     DataCenter* DC = DataCenter::get_instance();
 
-    // ✅ merge1 缺考扣錢邏輯補回來（merge2 原本漏掉）
     // 規則：上次 miss 掉考試 → 下次進館才扣錢
     if (exam_penalty_pending) {
         DC->hero->reduce_deposit(BuildJLSetting::exam_penalty);
         exam_penalty_pending = false;
 
         // 手機狀態一起清掉（避免一直掛著）
-        DC->phone->clear_food_status(KEY_JL_EXAM);
+        DC->phone->clear_food_status(Build_JL::PHONE_KEY_EXAM);
 
         char buf[128];
         std::snprintf(buf, sizeof(buf),
@@ -55,7 +49,7 @@ void Build_JL::on_interact() {
         debug_log("JL: exam penalty applied.\n");
     }
 
-    // merge2 的 UI 開關邏輯保留
+    // UI 開關
     if (!DC->ui->is_open()) DC->ui->open(this);
     else if (DC->ui->get_target() == this) DC->ui->close();
     else DC->ui->open(this);
@@ -106,17 +100,15 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
         yy += 30.0f;
     }
 
-    // ===== 主體選單（merge2 主體）=====
+    // ===== 主體選單 =====
     if (!in_confirm) {
         int option_index = 1;
         int exam_num = -1;
         int task_num = -1;
 
-        // 先決定編號（跟 update_ui 一樣）
         if (exam_active) exam_num = option_index++;
         if (professor_task_available) task_num = option_index++;
 
-        // (Exam)
         if (exam_num != -1) {
             int fps = (int)DataCenter::get_instance()->FPS;
             int remain_sec = (exam_remain_frames + fps - 1) / fps;
@@ -127,10 +119,10 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
             yy += 30.0f;
         }
 
-        // (Professor task)
         if (task_num != -1) {
             char buf[160];
-            std::snprintf(buf, sizeof(buf), "- (%d) 接受教授臨時任務（完成 +$%d）", task_num, BuildJLSetting::prof_reward);
+            std::snprintf(buf, sizeof(buf), "- (%d) 接受教授臨時任務（完成 +$%d）",
+                          task_num, BuildJLSetting::prof_reward);
             al_draw_text(f, al_map_rgb(255,255,255), x + padding, yy, 0, buf);
             yy += 30.0f;
         }
@@ -146,11 +138,9 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
             x + padding,
             yy + 10.0f,
             0,
-            "按 1對應數字鍵選擇 選擇，E 確認，Q 取消。"
+            "按 1/2 選擇，E 確認，Q 取消。"
         );
-    }
-    else {
-        // ===== 確認畫面（merge2 主體）=====
+    } else {
         const char* line1 = nullptr;
         switch (pending_choice) {
         case JLChoice::Exam:
@@ -166,7 +156,6 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
 
         al_draw_text(f, al_map_rgb(255,255,255), x + padding, yy, 0, line1);
         yy += 30.0f;
-
         al_draw_text(f, al_map_rgb(200,200,200), x + padding, yy, 0, "E 確認，Q 取消。");
     }
 
@@ -182,24 +171,21 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
         );
     }
 
-    // ✅ merge1 的圖片區塊加回來
+    // 圖片區塊
     ImageCenter* IC = ImageCenter::get_instance();
-    const char* img_path = BuildJLSetting::img_main; // 預設主頁
+    const char* img_path = BuildJLSetting::img_main;
 
     if (in_confirm && pending_choice == JLChoice::ProfessorTask) {
-        img_path = BuildJLSetting::img_prof; // 教授任務確認頁
+        img_path = BuildJLSetting::img_prof;
     }
-    // 若你未來做 exam 圖，也可以加：
-    // else if (in_confirm && pending_choice == JLChoice::Exam) img_path = BuildJLSetting::img_exam;
 
     ALLEGRO_BITMAP* ui_img = IC->get(img_path);
     if (ui_img) {
         float img_padding = 10.0f;
-        float reserve_bottom = 60.0f; // 留給底部 result_message
+        float reserve_bottom = 60.0f;
         float img_x1 = x + padding;
         float img_x2 = x + w - padding;
 
-        // 圖片放在 UI 下半部
         float img_y1 = y + h * 0.55f;
         float img_y2 = y + h - reserve_bottom;
 
@@ -222,12 +208,9 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
 void Build_JL::update_ui(UI* ui) {
     DataCenter* DC = DataCenter::get_instance();
 
-    // 更新結果訊息計時
     if (result_timer > 0) {
         result_timer--;
-        if (result_timer <= 0) {
-            result_message.clear();
-        }
+        if (result_timer <= 0) result_message.clear();
     }
 
     bool key1_pressed = DC->key_state[ALLEGRO_KEY_1] && !DC->prev_key_state[ALLEGRO_KEY_1];
@@ -243,21 +226,16 @@ void Build_JL::update_ui(UI* ui) {
         if (exam_active) exam_num = option_index++;
         if (professor_task_available) task_num = option_index++;
 
-        // 按 1
         if (key1_pressed) {
             if (exam_num == 1) { in_confirm = true; pending_choice = JLChoice::Exam; return; }
             if (task_num == 1) { in_confirm = true; pending_choice = JLChoice::ProfessorTask; return; }
         }
-
-        // 按 2
         if (key2_pressed) {
             if (exam_num == 2) { in_confirm = true; pending_choice = JLChoice::Exam; return; }
             if (task_num == 2) { in_confirm = true; pending_choice = JLChoice::ProfessorTask; return; }
         }
-
         return;
     } else {
-        // ===== 第二階段：確認 / 取消 =====
         if (keyQ_pressed) {
             in_confirm     = false;
             pending_choice = JLChoice::None;
@@ -270,7 +248,7 @@ void Build_JL::update_ui(UI* ui) {
             case JLChoice::Exam: {
                 exam_active = false;
                 exam_penalty_pending = false;
-                DC->phone->clear_food_status(KEY_JL_EXAM);
+                DC->phone->clear_food_status(Build_JL::PHONE_KEY_EXAM);
                 result_message = "你準時回到炯朗館參加突發考試，成功避免被扣錢！";
                 result_timer = BuildJLSetting::msg_frames;
                 break;
@@ -278,9 +256,11 @@ void Build_JL::update_ui(UI* ui) {
             case JLChoice::ProfessorTask: {
                 DC->hero->add_deposit(BuildJLSetting::prof_reward);
                 professor_task_available = false;
-                DC->phone->clear_food_status(KEY_JL_TASK);
+                DC->phone->clear_food_status(Build_JL::PHONE_KEY_TASK);
+
                 int fps = (int)DC->FPS;
                 professor_task_cooldown = fps * BuildJLSetting::prof_cd_s;
+
                 result_message = "成功協助教授完成任務獲得報酬！";
                 result_timer = BuildJLSetting::msg_frames;
                 break;
@@ -296,7 +276,6 @@ void Build_JL::update_ui(UI* ui) {
 void Build_JL::child_update() {
     DataCenter* DC = DataCenter::get_instance();
 
-    // 教授任務冷卻
     if (professor_task_cooldown > 0) professor_task_cooldown--;
 
     // ===== 突發考試倒數 =====
@@ -304,13 +283,13 @@ void Build_JL::child_update() {
         if (exam_remain_frames > 0) {
             exam_remain_frames--;
             if (exam_remain_frames <= 0) {
-                // 時限到了但玩家沒來
                 exam_active          = false;
                 exam_penalty_pending = true;
 
                 debug_log("JL: exam failed, penalty will be applied next visit.\n");
                 DC->phone->upsert_food_status(
-                    KEY_JL_EXAM,
+                    Build_JL::PHONE_KEY_EXAM,
+                    Build_JL::PHONE_APP_NAME,
                     "炯朗館突發考試未出席",
                     "你沒有在時間內回到炯朗館考試，下次進館會被扣錢。"
                 );
@@ -318,12 +297,12 @@ void Build_JL::child_update() {
         }
     }
 
-    // ===== 每隔 interval_frames roll 一次事件 =====
+    // ===== roll event =====
     frames_passed++;
     if (frames_passed < interval_frames) return;
     frames_passed = 0;
 
-    // 1. 可能觸發新的突發考試（如果目前沒有 active / pending）
+    // 1) 觸發突發考試
     if (!exam_active && !exam_penalty_pending) {
         float r = std::rand() / (float)RAND_MAX;
         if (r < BuildJLSetting::exam_prob) {
@@ -334,15 +313,15 @@ void Build_JL::child_update() {
 
             debug_log("JL: exam event TRIGGERED.\n");
             DC->phone->upsert_food_status(
-                KEY_JL_EXAM,
-                "劉炯朗館",
+                Build_JL::PHONE_KEY_EXAM,
+                Build_JL::PHONE_APP_NAME,
                 "突發考試通知",
                 "請在時限內回到劉炯朗館。不來下次進館會被扣錢。"
             );
         }
     }
 
-    // 2. 可能出現新的教授任務（沒有任務且不在冷卻時）
+    // 2) 教授任務
     if (!professor_task_available && professor_task_cooldown <= 0) {
         float r = std::rand() / (float)RAND_MAX;
         if (r < BuildJLSetting::prof_prob) {
@@ -350,8 +329,8 @@ void Build_JL::child_update() {
             debug_log("JL: professor task spawned.\n");
 
             DC->phone->upsert_food_status(
-                KEY_JL_TASK,
-                "劉炯朗館",
+                Build_JL::PHONE_KEY_TASK,
+                Build_JL::PHONE_APP_NAME,
                 "CHHuang教授徵求一位法律志工協助處理相關事務",
                 "意者請至炯朗館洽詢CHHuang教授"
             );
@@ -366,7 +345,6 @@ void Build_JL::child_init() {
     result_timer    = 0;
 
     frames_passed   = 0;
-    // interval_frames 已在成員變數裡給預設值
 
     exam_active          = false;
     exam_remain_frames   = 0;
