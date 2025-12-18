@@ -30,31 +30,27 @@
 #include <cstring>
 #include <cstdlib>
 #include <ctime>
-#include "data/GIFCenter.h"
-#include "algif5/algif.h"
 
 namespace {
-    constexpr const char* HERO_PREVIEW_ROOT = "./assets/gif/Hero";
+    constexpr const char* HERO_PREVIEW_ROOT = "./assets/image/hero";
     constexpr const char* HERO_NAMES[] = {
-        "dragonite",
-        "dog",
-        "cat"
+        "Snorlax",
+        "Wally"
     };
     constexpr int HERO_TYPE_MAX = sizeof(HERO_NAMES) / sizeof(HERO_NAMES[0]);
 
-	void draw_fullscreen_bitmap(ALLEGRO_BITMAP* bmp, int win_w, int win_h) {
+    constexpr const char* HERO_DIR_PREFIX = "FRONT"; // 預覽固定正面
+    constexpr int HERO_PREVIEW_FRAME_COUNT = 4;      // 0..3
+    constexpr int HERO_PREVIEW_FREQ = 6;             // 越小越快
+
+    void draw_fullscreen_bitmap(ALLEGRO_BITMAP* bmp, int win_w, int win_h) {
         if (!bmp) return;
         int bw = al_get_bitmap_width(bmp);
         int bh = al_get_bitmap_height(bmp);
-
-        al_draw_scaled_bitmap(
-            bmp,
-            0, 0, bw, bh,
-            0, 0, win_w, win_h,
-            0
-        );
+        al_draw_scaled_bitmap(bmp, 0, 0, bw, bh, 0, 0, win_w, win_h, 0);
     }
 }
+
 
 constexpr char game_icon_img_path[] = "./assets/image/game_icon.png";
 constexpr char game_start_sound_path[] = "./assets/sound/growl.mp3";
@@ -505,7 +501,7 @@ Game::game_draw() {
 
 	if (state == STATE::END_SUCCESS) {
 		if(background) {
-			al_draw_bitmap(background, 0, 0, 0);
+			draw_fullscreen_bitmap(background, DC->window_width, DC->window_height);
 		} else {
 			al_clear_to_color(al_map_rgb(0,0,0));
 		}
@@ -559,7 +555,7 @@ Game::game_draw() {
 		return;
 	}else if(state == STATE::END) {
 		if(background) {
-			al_draw_bitmap(background, 0, 0, 0);
+			draw_fullscreen_bitmap(background, DC->window_width, DC->window_height);
 		} else {
 			al_clear_to_color(al_map_rgb(0, 0, 0));
 		}
@@ -707,7 +703,7 @@ Game::game_draw() {
 		if (start_bg) {
 			draw_fullscreen_bitmap(start_bg, DC->window_width, DC->window_height);
 		} else if (background) {
-			al_draw_bitmap(background, 0, 0, 0);
+			draw_fullscreen_bitmap(background, DC->window_width, DC->window_height);
 		}
 
 		float cx = DC->window_width / 2.f;
@@ -809,31 +805,88 @@ Game::game_draw() {
 			ALLEGRO_ALIGN_CENTRE, "SELECT YOUR HERO");
 		cy += 40;
 
+		// ===== preview animation (NO need to modify Game.h) =====
+		static int preview_frame = 0;
+		static int preview_counter = 0;
+
+		// 若切換角色，重置動畫（避免上一隻的 frame 延續）
+		if (DC->key_state[ALLEGRO_KEY_A] && !DC->prev_key_state[ALLEGRO_KEY_A]) {
+			preview_frame = 0;
+			preview_counter = HERO_PREVIEW_FREQ;
+		}
+		if (DC->key_state[ALLEGRO_KEY_D] && !DC->prev_key_state[ALLEGRO_KEY_D]) {
+			preview_frame = 0;
+			preview_counter = HERO_PREVIEW_FREQ;
+		}
+
+		// 更新 frame（在 UI 畫面也會動）
+		if (preview_counter > 0) {
+			--preview_counter;
+		} else {
+			preview_frame = (preview_frame + 1) % HERO_PREVIEW_FRAME_COUNT; // 0..3
+			preview_counter = HERO_PREVIEW_FREQ;
+		}
+
 		{
 			int idx = selected_hero_index;
-			if(idx < 0) idx = 0;
-			if(idx >= HERO_TYPE_MAX) idx = HERO_TYPE_MAX - 1;
+			if (idx < 0) idx = 0;
+			if (idx >= HERO_TYPE_MAX) idx = HERO_TYPE_MAX - 1;
 
 			const char* base = HERO_NAMES[idx];
 
-			char gif_path[128];
-			sprintf(gif_path, "%s/%s_front.gif", HERO_PREVIEW_ROOT, base);
+			// ./assets/image/hero/<name>/FRONT_<frame>.png
+			char img_path[256];
+			std::snprintf(img_path, sizeof(img_path), "%s/%s/%s_%d.png",
+				HERO_PREVIEW_ROOT, base, HERO_DIR_PREFIX, preview_frame);
 
-			GIFCenter* GIFC = GIFCenter::get_instance();
-			ALGIF_ANIMATION* gif = GIFC->get(gif_path);
+			ImageCenter* IC = ImageCenter::get_instance();
+			ALLEGRO_BITMAP* bmp = IC->get(img_path);
 
-			if(gif) {
-				float hero_x = cx - gif->width / 2;
+			if (bmp) {
+				int bw = al_get_bitmap_width(bmp);
+				int bh = al_get_bitmap_height(bmp);
+
+				float scale = 1.0f;
+				float max_w = DC->window_width * 0.35f;
+				float max_h = DC->window_height * 0.35f;
+				if (bw > 0 && bh > 0) {
+					float sx = max_w / bw;
+					float sy = max_h / bh;
+					scale = std::min(1.0f, std::min(sx, sy));
+				}
+
+				float draw_w = bw * scale;
+				float draw_h = bh * scale;
+				float hero_x = cx - draw_w / 2.0f;
 				float hero_y = cy;
 
-				algif_draw_gif(gif, hero_x, hero_y, 0);
-				cy += gif->height + 20;
+				al_draw_scaled_bitmap(
+					bmp,
+					0, 0, bw, bh,
+					hero_x, hero_y,
+					draw_w, draw_h,
+					0
+				);
+
+				cy += draw_h + 20;
 
 				al_draw_text(
 					FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,255,0),
 					cx, cy,
 					ALLEGRO_ALIGN_CENTRE, base);
 				cy += 30;
+			} else {
+				al_draw_text(
+					FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(255,120,120),
+					cx, cy,
+					ALLEGRO_ALIGN_CENTRE, "Preview missing");
+				cy += 30;
+
+				al_draw_text(
+					FC->caviar_dreams[FontSize::SMALL], al_map_rgb(180,180,180),
+					cx, cy,
+					ALLEGRO_ALIGN_CENTRE, base);
+				cy += 25;
 			}
 		}
 
@@ -904,10 +957,9 @@ Game::game_draw() {
 
 		al_draw_text(FC->caviar_dreams[FontSize::MEDIUM], al_map_rgb(140,140,140),
 					cx, cy, ALLEGRO_ALIGN_CENTRE, "BACKSPACE → Return to Main Menu");
-	}
-    else {
+	}else {
         if(background) {
-            al_draw_bitmap(background, 0, 0, 0);
+            draw_fullscreen_bitmap(background, DC->window_width, DC->window_height);
         }
 
         if(DC->game_field_length < DC->window_width)

@@ -3,12 +3,8 @@
 
 #include <allegro5/allegro.h>
 
-
 struct ALLEGRO_SAMPLE_INSTANCE;
-/**
- * @brief Main class that runs the whole game.
- * @details All game procedures must be processed through this class.
- */
+
 class Game
 {
 public:
@@ -20,49 +16,49 @@ public:
 	bool game_update();
 	void game_draw();
 private:
-	/**
-	 * @brief States of the game process in game_update.
-	 * @see Game::game_update()
-	 */
 	enum class STATE {
-		START, // 主選單
-		HELP,  // 遊戲說明
-		UI,    // 選角 / 選關
-		LEVEL, // 遊戲主畫面
+		START,
+		HELP,
+		UI,
+		LEVEL,
 		PAUSE,
 		END,
 		END_SUCCESS
 	};
 	STATE state;
+
 	ALLEGRO_EVENT event;
 	ALLEGRO_BITMAP *game_icon;
-	ALLEGRO_BITMAP *background;   // 遊戲中背景（現在用的）
+	ALLEGRO_BITMAP *background;
 	ALLEGRO_BITMAP *start_bg;
-    ALLEGRO_BITMAP *menu_bg;      // 主選單背景
-    ALLEGRO_BITMAP *select_bg;    // 角色/關卡選擇背景
-	ALLEGRO_BITMAP* help_bg ;
-	ALLEGRO_BITMAP* ui_bg ;
-	ALLEGRO_BITMAP* skull_img;
-	ALLEGRO_BITMAP* start_button;
+    ALLEGRO_BITMAP *menu_bg;
+    ALLEGRO_BITMAP *select_bg;
+	ALLEGRO_BITMAP *help_bg;
+	ALLEGRO_BITMAP *ui_bg;
+	ALLEGRO_BITMAP *skull_img;
+	ALLEGRO_BITMAP *start_button;
 
-	// 背景音樂 & 音量
-    ALLEGRO_SAMPLE_INSTANCE *bgm_instance; // BGM 播放實例
-    float bgm_volume;                      // 0.0 ~ 1.0 對應 0~100%
+    ALLEGRO_SAMPLE_INSTANCE *bgm_instance;
+    float bgm_volume;
+
 private:
 	ALLEGRO_DISPLAY *display;
 	ALLEGRO_TIMER *timer;
 	ALLEGRO_EVENT_QUEUE *event_queue;
-	//UI *ui;
-	int selected_hero_index = 0;       // Select 畫面正在選的角色
-    static constexpr int HERO_TYPE_MAX = 3;  // 要跟 HeroSetting::HERO_TYPE_MAX 一致
-	bool  hero_starved;           // 是不是因為餓死而 Game Over
-    bool  game_over_sound_played; // Game Over 音效有沒有播過
-    float game_over_timer;        // Game Over 進入後經過時間（秒）
-	
-	bool game_success_sound_played = false;
+
+	int selected_hero_index = 0;
+    static constexpr int HERO_TYPE_MAX = 2;  // ✅ Snorlax, Wally
+
+	bool  hero_starved;
+    bool  game_over_sound_played;
+    float game_over_timer;
+
+	bool  game_success_sound_played = false;
 	float game_success_timer = 0.0f;
+
 	bool god_mode = false;
-	 float ui_vol_y = 0.0f;
+
+	float ui_vol_y = 0.0f;
     float ui_god_y = 0.0f;
     float ui_slider_x1 = 0.0f;
     float ui_slider_x2 = 0.0f;
