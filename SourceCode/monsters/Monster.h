@@ -6,6 +6,7 @@
 #include "../shapes/Point.h"
 #include "../object/Build.h"
 #include "../Build_object/Build_A.h"
+#include "../Build_object/Build_B.h"
 #include <vector>
 #include <queue>
 
@@ -23,7 +24,8 @@ enum class MonsterType {
 // ===== 怪物 AI 狀態：亂走 / 去建築物搶學餐 =====
 enum class AIState {
     WANDER,         // 隨機亂走
-    GO_TO_BUILDING  // 朝有食物的建築物前進
+    GO_TO_BUILDING, // 朝有食物的建築物前進
+    GO_TO_BUILDINGB
 };
 
 /**
@@ -77,6 +79,7 @@ private:
 
     // 目前鎖定要去搶的建築物（有食物的 Build_A）
     Build_A *target_building = nullptr;
+    Build_B *target_building_B = nullptr;
 
     // 追建築物分兩階段：0 = 先走 X, 1 = 再走 Y
     int chase_phase = 0;

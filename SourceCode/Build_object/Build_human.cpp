@@ -21,7 +21,7 @@ namespace BuildHumanSetting {
     // 麥當勞相關
     constexpr int    mcd_cost         = 90;    // 價格
     constexpr double mcd_stamina      = 45.0;  // 麥當勞恢復飽食度
-    constexpr int    mcd_cooldown_sec = 10;    // 冷卻秒數（期間不能再用人社院）
+    constexpr int    mcd_cooldown_sec = 15;    // 冷卻秒數（期間不能再用人社院）
 
     // UI 顯示
     constexpr int    msg_frames       = 120;   // 結果訊息顯示 frame（約 2 秒，60FPS）

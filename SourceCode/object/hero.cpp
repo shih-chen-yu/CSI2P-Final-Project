@@ -99,7 +99,7 @@ void HERO::update(){
         b->init(hx, hy, mx, my);
         DC->bullets.push_back(b);
         if (!god_mode) {
-            starve -= 1.0;
+            starve -= 10.0;
         }
     }
 

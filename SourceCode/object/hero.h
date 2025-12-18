@@ -37,7 +37,7 @@ class HERO : public Object{
         double starve = 100;
         double starve_decrease_rate = 0.01; // 每次 update 減少的飢餓值
         double starve_decrease_rate_walk = 0.05; // 如果有走路的狀態下 update減少的飢餓值
-        double deposit = 114514;
+        double deposit = 50;
         std::map<HeroState, std::string> gifPath;
         int hero_type_index = 0;
         bool god_mode = false;

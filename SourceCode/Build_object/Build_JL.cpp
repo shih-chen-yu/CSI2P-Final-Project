@@ -24,7 +24,7 @@ namespace BuildJLSetting {
     constexpr int   exam_penalty    = 80;     // 缺考扣多少錢
 
     constexpr float prof_prob       = 0.12f;  // 教授任務出現機率
-    constexpr int   prof_reward     = 120;    // 完成任務獎勵多少錢
+    constexpr int   prof_reward     = 10;    // 完成任務獎勵多少錢
     constexpr int   prof_cd_s       = 30;     // 任務完成後冷卻秒數
 
     constexpr int   msg_frames      = 120;    // 底部提示顯示多久（frame）
@@ -48,7 +48,7 @@ void Build_JL::on_interact() {
 
         char buf[128];
         std::snprintf(buf, sizeof(buf),
-            "你上次沒來考試，被扣了 %d 元學雜費。", BuildJLSetting::exam_penalty);
+            "你上次沒來考試，被扣了 %d 元去重補修。", BuildJLSetting::exam_penalty);
         result_message = buf;
         result_timer   = BuildJLSetting::msg_frames;
 
@@ -101,7 +101,7 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
             x + padding,
             yy,
             0,
-            "你上次突發考試沒到，下次進炯朗館會被扣錢。"
+            "你上次突發考試沒到，下次記得去重補修。"
         );
         yy += 30.0f;
     }
@@ -146,7 +146,7 @@ void Build_JL::draw_ui(UI* ui, float x, float y, float w, float h) {
             x + padding,
             yy + 10.0f,
             0,
-            "按 1 / 2 選擇，E 確認，Q 取消。"
+            "按 1對應數字鍵選擇 選擇，E 確認，Q 取消。"
         );
     }
     else {
@@ -281,7 +281,7 @@ void Build_JL::update_ui(UI* ui) {
                 DC->phone->clear_food_status(KEY_JL_TASK);
                 int fps = (int)DC->FPS;
                 professor_task_cooldown = fps * BuildJLSetting::prof_cd_s;
-                result_message = "你幫教授處理臨時任務，拿到報酬！";
+                result_message = "成功協助教授完成任務獲得報酬！";
                 result_timer = BuildJLSetting::msg_frames;
                 break;
             }
@@ -352,8 +352,8 @@ void Build_JL::child_update() {
             DC->phone->upsert_food_status(
                 KEY_JL_TASK,
                 "劉炯朗館",
-                "劉炯朗館教授臨時任務",
-                "有教授臨時需要人幫忙處理雜務，到劉炯朗館一趟也許可以賺點外快。"
+                "CHHuang教授徵求一位法律志工協助處理相關事務",
+                "意者請至炯朗館洽詢CHHuang教授"
             );
         }
     }
