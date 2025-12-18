@@ -218,6 +218,7 @@ void Build_delta::update_ui(UI* ui) {
             if (pending_kind == DeltaFoodKind::Office) {
                 stamina = BuildDeltaSetting::office_stamina;
                 office_count--;
+                DC->hero->add_score(10);
 
                 if (auto* SC = SoundCenter::get_instance())
                     SC->play("./assets/sound/eat.wav", ALLEGRO_PLAYMODE_ONCE);
@@ -229,6 +230,7 @@ void Build_delta::update_ui(UI* ui) {
                 if (r < BuildDeltaSetting::camp_poison_prob) {
                     stamina = -BuildDeltaSetting::camp_poison_damage;
                     msg_fmt = "你吃到過期的營隊剩食！飽食度 -%.0f！";
+                    DC->hero->add_score(-100);
 
                     if (auto* SC = SoundCenter::get_instance())
                         SC->play("./assets/sound/vomit.mp3", ALLEGRO_PLAYMODE_ONCE);
@@ -238,6 +240,7 @@ void Build_delta::update_ui(UI* ui) {
                     if (DC->starve_info) DC->starve_info->trigger_poison_flash();
                 } else {
                     stamina = BuildDeltaSetting::camp_stamina;
+                    DC->hero->add_score(30);
                     msg_fmt = "你獲得了 %.0f 飽食度！";
                     if (auto* SC = SoundCenter::get_instance())
                         SC->play("./assets/sound/eat.wav", ALLEGRO_PLAYMODE_ONCE);

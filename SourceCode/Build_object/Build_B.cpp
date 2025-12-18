@@ -6,146 +6,229 @@
 #include "../object/ui.h"
 #include "../object/hero.h"
 #include "../object/Phone.h"
-
-#include <allegro5/allegro_font.h>
 #include "../Utils.h"
 
-#include <cstdlib> // rand
-#include <ctime>   // time
+#include <allegro5/allegro_font.h>
+#include <cstdlib>
+#include <cstdio>
+#include <string>
 
+// =====================
+// Settings（用你第一份的店與價格）
+// =====================
 namespace BuildBSetting{
-    double bento_stamina = 100;
-    int bento_cost = 500;
-    double drink_stamina = 40;
-    int drink_cost = 50;
+    // (1) 三明治：$100，+50
+    double sandwich_stamina = 50;
+    int    sandwich_cost    = 100;
 
-    static constexpr const char* img_shop  = "./assets/image/A_ui/bread.jpg";     // 餐廳
-    static constexpr const char* img_bento = "./assets/image/A_ui/monster.jpg";    // 飲料
-    static constexpr const char* img_drink = "./assets/image/A_ui/meth.jpg";    // 便當
+    // (2) 飯糰：$80，+40
+    double onigiri_stamina  = 40;
+    int    onigiri_cost     = 80;
+
+    static constexpr const char* img_shop     = "./assets/image/A_ui/water.jpg";
+    static constexpr const char* img_sandwich = "./assets/image/A_ui/sandwich.jpg";
+    static constexpr const char* img_onigiri  = "./assets/image/A_ui/omigiri.jpg";
+
+    static constexpr const char* phone_from = "水漾餐廳";
 }
 
+// 每棟 building 唯一 key
+static std::string make_buildB_phone_key(const Build_B* self) {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "BUILD_B_%p", (void*)self);
+    return std::string(buf);
+}
+
+// =====================
+// Phone helpers
+// =====================
+void Build_B::notify_food_spawn() {
+    DataCenter* DC = DataCenter::get_instance();
+    if (!DC || !DC->phone) return;
+
+    if (phone_key.empty()) phone_key = make_buildB_phone_key(this);
+
+    char msg[128];
+    std::snprintf(msg, sizeof(msg), "開始販售！目前共有 %d 份", food_amount);
+
+    DC->phone->upsert_food_status(
+        phone_key.c_str(),
+        BuildBSetting::phone_from,
+        "餐點已上架",
+        msg
+    );
+}
+
+void Build_B::notify_food_taken(const char* who) {
+    DataCenter* DC = DataCenter::get_instance();
+    if (!DC || !DC->phone) return;
+
+    if (phone_key.empty()) phone_key = make_buildB_phone_key(this);
+
+    if (!has_food()) {
+        DC->phone->upsert_food_status(
+            phone_key.c_str(),
+            BuildBSetting::phone_from,
+            "已售罄",
+            "目前沒有剩餘餐點"
+        );
+        return;
+    }
+
+    char title[64];
+    char msg[128];
+    std::snprintf(title, sizeof(title), "%s拿走了一份", (who ? who : "有人"));
+    std::snprintf(msg, sizeof(msg), "剩下 %d 份", food_amount);
+
+    DC->phone->upsert_food_status(
+        phone_key.c_str(),
+        BuildBSetting::phone_from,
+        title,
+        msg
+    );
+}
+
+void Build_B::sync_phone() {
+    DataCenter* DC = DataCenter::get_instance();
+    if (!DC || !DC->phone) return;
+
+    if (phone_key.empty()) phone_key = make_buildB_phone_key(this);
+
+    if (!has_food()) {
+        DC->phone->upsert_food_status(
+            phone_key.c_str(),
+            BuildBSetting::phone_from,
+            "已售罄",
+            "目前沒有剩餘餐點"
+        );
+        return;
+    }
+
+    char msg[128];
+    std::snprintf(msg, sizeof(msg), "目前剩下 %d 份餐點", food_amount);
+
+    DC->phone->upsert_food_status(
+        phone_key.c_str(),
+        BuildBSetting::phone_from,
+        "販售中",
+        msg
+    );
+}
+
+// =====================
+// Core state
+// =====================
+bool Build_B::has_food() const {
+    return (food_amount > 0) || (StateB == BuildStateB::Food);
+}
+
+void Build_B::set_stateB(BuildStateB s) {
+    StateB = s;
+    sync_phone();
+}
+
+void Build_B::set_food_amount(int n) {
+    food_amount = n;
+    if (food_amount <= 0) {
+        food_amount = 0;
+        StateB = BuildStateB::Nothing;
+        sync_phone();
+        return;
+    }
+    StateB = BuildStateB::Food;
+    notify_food_spawn();   // 生成時通知一次
+}
+
+bool Build_B::take_food(int amount, const char* who) {
+    if (amount <= 0) return false;
+    if (!has_food()) return false;
+
+    if (food_amount <= 0) food_amount = 1; // fallback
+
+    food_amount -= amount;
+    if (food_amount <= 0) {
+        food_amount = 0;
+        StateB = BuildStateB::Nothing;
+        notify_food_taken(who); // 會走售罄分支
+        return true;
+    }
+
+    StateB = BuildStateB::Food;
+    notify_food_taken(who);
+    return true;
+}
+
+// =====================
+// UI
+// =====================
 void Build_B::on_interact() {
     DataCenter* DC = DataCenter::get_instance();
-    if(!DC->ui->is_open()) {
-        DC->ui->open(this);   // 打開 UI，並指定 target = 這間商店
-    } else if (DC->ui->get_target() == this) {
-        // 如果目前 UI 就是這間商店的，再按 F 可以關掉
-        DC->ui->close();
-    } else {
-        // 如果 UI 開著但 target 是別人，可以切換 target
-        DC->ui->open(this);
-    }
+    if(!DC->ui->is_open()) DC->ui->open(this);
+    else if (DC->ui->get_target() == this) DC->ui->close();
+    else DC->ui->open(this);
 }
 
 void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
     FontCenter* FC = FontCenter::get_instance();
-
     ALLEGRO_FONT* font = FC->NotoSansCJK[FontSize::SMALL];
-
     float padding = 20.0f;
 
-    switch(StateA){
+    switch(StateB){
         case BuildStateB::Food:{
             if(!in_confirm){
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 0),
-                    x + w / 2.0f,
-                    y + padding,
-                    ALLEGRO_ALIGN_CENTER,
-                    "Shop"
-                );
+                al_draw_text(font, al_map_rgb(255,255,0),
+                    x + w/2.0f, y + padding, ALLEGRO_ALIGN_CENTER, "水漾餐廳");
 
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 255),
-                    x + padding,
-                    y + padding + 40,
-                    0,
-                    "-(1) 花費 $500 買冰毒，恢復 100 飽食度"
-                );
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 255),
-                    x + padding,
-                    y + padding + 70,
-                    0,
-                    "-(2) 花費 $50 買魔爪，恢復 40 飽食度"
-                );
-            }else{
-                const char* item_name = (pending_item == 1 ? "冰毒" : "魔爪");
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 0),
-                    x + w / 2.0f,
-                    y + padding,
-                    ALLEGRO_ALIGN_CENTER,
-                    "Confirm Purchase"
-                );
-                char buf[100];
-                sprintf(buf, "確定購買 %s?", item_name);
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 255),
-                    x + padding,
-                    y + padding + 60,
-                    0,
-                    buf
-                );
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 255, 255),
-                    x + padding,
-                    y + padding + 90,
-                    0,
-                    "按下E確認，Q 取消"
-                );
+                char leftbuf[64];
+                std::snprintf(leftbuf, sizeof(leftbuf), "剩餘份數：%d", food_amount);
+                al_draw_text(font, al_map_rgb(200,200,200),
+                    x + padding, y + padding + 25, 0, leftbuf);
+
+                al_draw_text(font, al_map_rgb(255,255,255),
+                    x + padding, y + padding + 55, 0,
+                    "-(1) 花費 $100 買三明治，恢復 50 飽食度");
+
+                al_draw_text(font, al_map_rgb(255,255,255),
+                    x + padding, y + padding + 85, 0,
+                    "-(2) 花費 $80 買飯糰，恢復 40 飽食度");
+            } else {
+                const char* item_name = (pending_item == 1 ? "三明治" : "飯糰");
+
+                al_draw_text(font, al_map_rgb(255,255,0),
+                    x + w/2.0f, y + padding, ALLEGRO_ALIGN_CENTER, "Confirm Purchase");
+
+                char buf[128];
+                std::snprintf(buf, sizeof(buf), "確定購買 %s?", item_name);
+                al_draw_text(font, al_map_rgb(255,255,255),
+                    x + padding, y + padding + 60, 0, buf);
+
+                al_draw_text(font, al_map_rgb(255,255,255),
+                    x + padding, y + padding + 90, 0, "按下E確認，Q 取消");
             }
 
-            // 顯示錢不夠 / 其他提示
             if (ui_message_timer > 0 && !ui_message.empty()) {
-                al_draw_text(
-                    font,
-                    al_map_rgb(255, 80, 80), // 紅色提示
-                    x + padding,
-                    y + padding + 120,
-                    0,
-                    ui_message.c_str()
-                );
+                al_draw_text(font, al_map_rgb(255,80,80),
+                    x + padding, y + padding + 120, 0, ui_message.c_str());
             }
             break;
         }
-        case BuildStateB::Nothing:
         default:{
-            al_draw_text(
-                font,
-                al_map_rgb(255, 255, 0),
-                x + w / 2.0f,
-                y + padding,
-                ALLEGRO_ALIGN_CENTER,
-                "Nothing here now"
-            );
+            al_draw_text(font, al_map_rgb(255,255,0),
+                x + w/2.0f, y + padding, ALLEGRO_ALIGN_CENTER, "Nothing here now");
             break;
         }
     }
 
     ImageCenter* IC = ImageCenter::get_instance();
-
     const char* img_path = BuildBSetting::img_shop;
 
-    if (StateA == BuildStateB::Food && in_confirm) {
-        // 確認頁：依 pending_item
-        if (pending_item == 1)
-            img_path = BuildBSetting::img_drink;
-        else if (pending_item == 2)
-            img_path = BuildBSetting::img_bento;
+    if (StateB == BuildStateB::Food && in_confirm) {
+        img_path = (pending_item == 1 ? BuildBSetting::img_sandwich : BuildBSetting::img_onigiri);
     }
 
     ALLEGRO_BITMAP* ui_img = IC->get(img_path);
     if (ui_img) {
-        float padding_img = 10.0f;
-        float reserve_bottom = 40.0f; // 留給錯誤提示
-
+        float reserve_bottom = 40.0f;
         float img_x1 = x + padding;
         float img_x2 = x + w - padding;
         float img_y1 = y + h * 0.55f;
@@ -154,113 +237,69 @@ void Build_B::draw_ui(UI* ui, float x, float y, float w, float h) {
         if (img_y2 > img_y1) {
             int bw = al_get_bitmap_width(ui_img);
             int bh = al_get_bitmap_height(ui_img);
-
-            al_draw_scaled_bitmap(
-                ui_img,
-                0, 0, bw, bh,
-                img_x1, img_y1,
-                img_x2 - img_x1,
-                img_y2 - img_y1,
-                0
-            );
+            al_draw_scaled_bitmap(ui_img, 0,0,bw,bh, img_x1, img_y1, img_x2-img_x1, img_y2-img_y1, 0);
         }
     }
 }
 
 void Build_B::update_ui(UI* ui) {
     DataCenter* DC = DataCenter::get_instance();
+    if (StateB != BuildStateB::Food || !has_food()) return;
 
-    if (StateA != BuildStateB::Food) {
-        // 沒食物時，UI 只能看，不能做事
-        return;
-    }
-    // UI 提示倒數
     if (ui_message_timer > 0) {
         ui_message_timer--;
         if (ui_message_timer <= 0) ui_message.clear();
     }
 
-    // 讀 key edge
     bool key1_pressed = DC->key_state[ALLEGRO_KEY_1] && !DC->prev_key_state[ALLEGRO_KEY_1];
     bool key2_pressed = DC->key_state[ALLEGRO_KEY_2] && !DC->prev_key_state[ALLEGRO_KEY_2];
     bool esc_pressed  = DC->key_state[ALLEGRO_KEY_Q] && !DC->prev_key_state[ALLEGRO_KEY_Q];
     bool keyE_pressed = DC->key_state[ALLEGRO_KEY_E] && !DC->prev_key_state[ALLEGRO_KEY_E];
 
     if (!in_confirm) {
-        // ————————————————
-        // 第一階段：選擇買什麼
-        // ————————————————
-        if (key1_pressed) {
-            in_confirm = true;
-            pending_item = 1;
-            debug_log("Shop: choose Drink, go to confirm.\n");
-        }
-        else if (key2_pressed) {
-            in_confirm = true;
-            pending_item = 2;
-            debug_log("Shop: choose Bento, go to confirm.\n");
-        }
+        if (key1_pressed) { in_confirm = true; pending_item = 1; }
+        else if (key2_pressed) { in_confirm = true; pending_item = 2; }
+        return;
     }
-    else {
-        // ————————————————
-        // 第二階段：確認 / 取消
-        // ————————————————
-        if (esc_pressed) {
-            // 取消 → 回到主菜單
-            in_confirm = false;
-            pending_item = 0;
-            debug_log("Shop: cancel purchase.\n");
-            return;
-        }
 
-        // ⭐ 按 E 確認購買（統一按鍵）
-        if (keyE_pressed) {
-            int cost = 0;
-            double stamina = 0;
-            const char* item_name = "";
-            
-            if (pending_item == 1) {
-                // Drink
-                cost = BuildBSetting::drink_cost;
-                stamina = BuildBSetting::drink_stamina;
-                item_name = "冰毒";
-            }
-            else if (pending_item == 2) {
-                // Bento
-                cost = BuildBSetting::bento_cost;
-                stamina = BuildBSetting::bento_stamina;
-                item_name = "魔爪";
-            }
-            
-            // 檢查是否有足夠的錢
-            if (DC->hero->can_afford(cost)) {
-                debug_log("Shop: confirm buy %s.\n", item_name);
-                DC->hero->add_stamina(stamina);
-                DC->hero->reduce_deposit(cost);
-                
-                // 結帳後商品售罄
-                StateA = BuildStateB::Nothing;
-                in_confirm = false;
-                pending_item = 0;
-                
-                DC->ui->close();
-            } else {
-                debug_log("Shop: not enough money to buy %s.\n", item_name);
-
-                // 留在確認頁面，顯示提示（2 秒）
-                char msg[100];
-                sprintf(msg, "錢不夠！需要 $%d，目前 $%d", cost, (int)DC->hero->get_deposit());
-                ui_message = msg;
-                ui_message_timer = 120; // 假設 60 FPS -> 2 秒
-            }
-        }
+    if (esc_pressed) {
+        in_confirm = false;
+        pending_item = 0;
+        return;
     }
+
+    if (!keyE_pressed) return;
+
+    int cost = 0;
+    double stamina = 0;
+    const char* item_name = "";
+
+    if (pending_item == 1) { cost = BuildBSetting::sandwich_cost; stamina = BuildBSetting::sandwich_stamina; item_name = "三明治"; }
+    else if (pending_item == 2) { cost = BuildBSetting::onigiri_cost; stamina = BuildBSetting::onigiri_stamina; item_name = "飯糰"; }
+
+    if (!DC->hero->can_afford(cost)) {
+        char msg[100];
+        std::snprintf(msg, sizeof(msg), "錢不夠！需要 $%d，目前 $%d", cost, (int)DC->hero->get_deposit());
+        ui_message = msg;
+        ui_message_timer = 120;
+        return;
+    }
+
+    DC->hero->add_stamina(stamina);
+    DC->hero->reduce_deposit(cost);
+    DC->hero->add_score(10);
+
+    take_food(1, "你"); // ✅ 扣 1 份 + phone 更新
+
+    in_confirm = false;
+    pending_item = 0;
+
+    if (!has_food()) DC->ui->close(); // 售罄才關
 }
 
 void Build_B::child_update(){
     DataCenter* DC = DataCenter::get_instance();
-    if(StateA == BuildStateB::Nothing){
-
+    if(StateB == BuildStateB::Nothing){
         if(DC->ui->is_open()) return;
 
         frames_passed += 1;
@@ -269,24 +308,29 @@ void Build_B::child_update(){
 
         float r = std::rand() / (float)RAND_MAX;
         if(r < cur_prob){
-            debug_log("Shiao Chi Bu start to sell some lunch\n");
-            // 中獎後機率重設
             cur_prob = base_prob;
-            StateA = BuildStateB::Food;
+
+            set_food_amount(3);  // ✅ 一次出 3 份
+
             DC->phone->add_notification(
-                "奇怪的商店",
-                "進貨了一些奇怪的東西",
-                "歡迎各位有興趣過來參考一下"
+                BuildBSetting::phone_from,
+                "午餐已開始販售",
+                "歡迎前來購買～"
             );
         } else {
             cur_prob += prob_step;
             if(cur_prob > max_prob) cur_prob = max_prob;
         }
-    }else{
-        
     }
 }
 
 void Build_B::child_init(){
-
-}   
+    phone_key.clear();
+    StateB = BuildStateB::Nothing;
+    food_amount = 0;
+    targeted_by_monster = false;
+    in_confirm = false;
+    pending_item = 0;
+    ui_message.clear();
+    ui_message_timer = 0;
+}

@@ -1,5 +1,6 @@
 #include "OperationCenter.h"
 #include "DataCenter.h"
+#include "SoundCenter.h"
 #include "../monsters/Monster.h"
 #include "../object/hero.h"
 #include "../object/Build.h"
@@ -26,6 +27,7 @@ void OperationCenter::_draw_monster() {
 
 void OperationCenter::_update_bullets() {
     DataCenter* DC = DataCenter::get_instance();
+    SoundCenter* SC = SoundCenter::get_instance();
     auto &bullets = DC->bullets;
 
     for (auto it = bullets.begin(); it != bullets.end(); ) {
@@ -44,8 +46,13 @@ void OperationCenter::_update_bullets() {
             if (!m->is_alive()) continue;
 
             if (b->shape && m->shape && b->shape->overlap(*(m->shape))) {
+                DC->hero->add_score(10); // 打中怪物獲得 10 存款
                 m->on_hit_by_bullet();
                 b->kill();   // 或 b->dead = true; 看你怎麼做
+
+                if (auto* SC = SoundCenter::get_instance()) {
+                    SC->play("./assets/sound/fah.mp3", ALLEGRO_PLAYMODE_ONCE);
+                }
                 break;       // 一顆子彈只打一次
             }
         }

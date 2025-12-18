@@ -281,7 +281,7 @@ void Build_JL::update_ui(UI* ui) {
                 DC->phone->clear_food_status(KEY_JL_TASK);
                 int fps = (int)DC->FPS;
                 professor_task_cooldown = fps * BuildJLSetting::prof_cd_s;
-                result_message = "成功協助教授完成任務獲得報酬！";
+                result_message = "成功協助教授完成任務獲得報酬！只是因為是黃教授所以薪水好像有點少?";
                 result_timer = BuildJLSetting::msg_frames;
                 break;
             }

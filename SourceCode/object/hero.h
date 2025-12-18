@@ -36,6 +36,10 @@ public:
     void set_god_mode(bool on) { god_mode = on; }
     bool is_god_mode() const { return god_mode; }
 
+    // ✅ merge1: score system
+    int get_score() const { return score; }
+    void add_score(int s) { score += s; }
+
 private:
     // ===== movement / status =====
     HeroState State = HeroState::FRONT;
@@ -43,21 +47,23 @@ private:
     double stamina_extra_speed = 1.5;
 
     double starve = 100;
-    double starve_decrease_rate = 0.01;      // 每次 update 減少的飢餓值（站著）
-    double starve_decrease_rate_walk = 0.05; // 有走路狀態下 update 減少的飢餓值
+    double starve_decrease_rate = 0.01;      // 站著扣
+    double starve_decrease_rate_walk = 0.05; // 走路扣
 
-    // merge1 的初始值：避免一開局就變成 debug 超大錢
     double deposit = 50;
+
+    // ✅ merge1: score
+    int score = 0;
 
     int hero_type_index = 0;
     bool god_mode = false;
 
-    // ===== PNG animation (monster-style) =====
+    // ✅ merge2: PNG animation (monster-style)
     int bitmap_img_id = 0;            // 0..(frame_count-1)
     int bitmap_switch_counter = 0;
-    int bitmap_switch_freq = 8;       // 越小動畫越快
+    int bitmap_switch_freq = 8;       // 越小越快
     bool is_moving = false;           // update() 內決定
-    int frame_count = 4;              // 你若只有 _0~_3.png 就是 4
+    int frame_count = 4;              // 你只有 _0~_3.png 就是 4
 };
 
 #endif

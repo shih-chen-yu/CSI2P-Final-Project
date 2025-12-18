@@ -18,6 +18,7 @@ class Phone;
 class StarveInfo;
 class CoinInfo;
 class TimeInfo;
+class ScoreInfo;
 
 class Monster;
 class HERO;
@@ -28,8 +29,6 @@ class UI;
 class Map;
 class Phone;
 
-class StarveInfo;
-class CoinInfo;
 
 /**
  * @brief Stores generic global data and relatively small data structures.
@@ -141,6 +140,13 @@ public:
 	 * @see CoinInfo
 	 */
 	CoinInfo* coin_info;
+
+	/**
+	 * @brief 目前的分數
+	 * @details 其實上面大部分都說明完畢了
+	 * @see ScoreInfo
+	 */
+	ScoreInfo* score_info;
 
 	/**
 	 * @brief 顯示你現在大幾了

@@ -13,11 +13,13 @@
 #include "Build_object/Build_JL.h"
 #include "Build_object/Build_JL2.h"
 #include "Build_object/Build_B.h"
+#include "Build_object/Build_C.h"
 
 enum class BuildKind {
     Normal,   // 原本的建築
     Normal2,
     Normal3,
+    CCCC,
     DELTA, //台達館
     HUMAN, //人社院
     TSMC,  //台積館
@@ -44,6 +46,7 @@ class Map{
                 {0.1f, 0.8f, BuildKind::Normal2},
                 {0.3f, 1.0f, BuildKind::JL2},
                 {0.7f, 0.8f, BuildKind::Normal3},
+                {0.5f, 0.5f, BuildKind::CCCC}
             };
             // 不在這裡直接 draw(); 讓 game loop 呼叫 draw()
         }
@@ -88,6 +91,8 @@ class Map{
                     return new Build_JL2();
                 case BuildKind::Normal3:
                     return new Build_B();
+                case BuildKind::CCCC:
+                    return new Build_C();
                 case BuildKind::Normal:
                 default:
                     return new Build();

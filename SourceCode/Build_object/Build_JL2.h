@@ -20,9 +20,7 @@ public:
 
 protected:
     const char* sprite_basename() const override {
-        // 對應 ./assets/image/building/building_JL2.png
-        // 若你實際資源名稱不同，只改這行即可
-        return "building_JL";
+        return "building_edu";
     }
 
     void on_interact() override;
